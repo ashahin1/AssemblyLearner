@@ -11,17 +11,17 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@codemirror/commands": "^6.6.1",
+    "@codemirror/language": "^6.10.2",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.33.0",
+    "framer-motion": "^11.5.4",
+    "lucide-react": "^0.441.0",
+    "lz-string": "^1.5.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2",
-    "@codemirror/state": "^6.4.1",
-    "@codemirror/view": "^6.33.0",
-    "@codemirror/language": "^6.10.2",
-    "@codemirror/commands": "^6.6.1",
-    "zustand": "^4.5.5",
-    "lucide-react": "^0.441.0",
-    "lz-string": "^1.5.0",
-    "framer-motion": "^11.5.4"
+    "zustand": "^4.5.5"
   },
   "devDependencies": {
     "@types/react": "^18.3.5",
@@ -33,6 +33,7 @@
     "typescript": "^5.5.4",
     "vite": "^5.4.3",
     "vite-plugin-pwa": "^0.20.5",
+    "vite-plugin-singlefile": "^2.3.3",
     "vitest": "^2.0.5"
   }
 }

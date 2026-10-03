@@ -1,13 +1,17 @@
 // COE224: Assembly Language Studio - Visual Stack Panel (ESP & EBP)
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useCPUStore } from '../store/cpuStore';
 import { MEMORY_LAYOUT } from '../engine/constants';
 import { ArrowDown, Layers } from 'lucide-react';
 
+export type StackDisplayFormat = 'hex' | 'unsigned' | 'signed' | 'binary';
+
 export const StackPanel: React.FC = () => {
   const cpuState = useCPUStore((s) => s.cpuState);
   const memory = useCPUStore((s) => s.memory);
+
+  const [format, setFormat] = useState<StackDisplayFormat>('hex');
 
   const esp = cpuState.registers.esp;
   const ebp = cpuState.registers.ebp;
@@ -15,7 +19,6 @@ export const StackPanel: React.FC = () => {
 
   // Collect stack slots from stackTop down to ESP (or minimum 4 slots for visualization)
   const slots: Array<{ address: number; value: number; isEsp: boolean; isEbp: boolean }> = [];
-
   const displaySlots = Math.max(4, Math.min(10, Math.floor((stackTop - esp) / 4) + 2));
 
   for (let i = 0; i < displaySlots; i++) {
@@ -29,6 +32,26 @@ export const StackPanel: React.FC = () => {
     });
   }
 
+  const format32Value = (val: number, fmt: StackDisplayFormat): string => {
+    const unsigned = val >>> 0;
+    if (fmt === 'hex') {
+      return unsigned.toString(16).toUpperCase().padStart(8, '0') + 'h';
+    }
+    if (fmt === 'unsigned') {
+      return unsigned.toString(10);
+    }
+    if (fmt === 'signed') {
+      let signed = unsigned;
+      if (unsigned > 0x7fffffff) signed -= 0x100000000;
+      return signed.toString(10);
+    }
+    if (fmt === 'binary') {
+      const bin = unsigned.toString(2).padStart(32, '0');
+      return bin.match(/.{1,8}/g)?.join(' ') ?? bin;
+    }
+    return '';
+  };
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-lg p-3 shadow-lg flex flex-col h-full">
       {/* Panel Header */}
@@ -37,9 +60,20 @@ export const StackPanel: React.FC = () => {
           <Layers size={14} className="text-sky-400" />
           <span>Call Stack</span>
         </div>
-        <div className="flex items-center gap-1 text-[10px] text-slate-400">
-          <ArrowDown size={12} className="text-amber-400" />
-          <span>Grows Downward</span>
+
+        {/* Display Format Toggle */}
+        <div className="flex bg-slate-950 p-0.5 rounded border border-slate-800">
+          {(['hex', 'unsigned', 'signed', 'binary'] as StackDisplayFormat[]).map((fmt) => (
+            <button
+              key={fmt}
+              onClick={() => setFormat(fmt)}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition ${
+                format === fmt ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {fmt === 'hex' ? 'HEX' : fmt === 'unsigned' ? 'U-DEC' : fmt === 'signed' ? 'S-DEC' : 'BIN'}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -47,7 +81,7 @@ export const StackPanel: React.FC = () => {
       <div className="flex-1 overflow-y-auto space-y-1.5 font-mono text-xs pr-1">
         {slots.map(({ address, value, isEsp, isEbp }) => {
           const hexAddr = address.toString(16).toUpperCase().padStart(8, '0') + 'h';
-          const hexVal = value.toString(16).toUpperCase().padStart(8, '0') + 'h';
+          const formattedVal = format32Value(value, format);
 
           return (
             <div
@@ -73,8 +107,8 @@ export const StackPanel: React.FC = () => {
                   </span>
                 )}
               </div>
-              <span className={`font-semibold tracking-wider ${isEsp ? 'text-amber-300' : 'text-slate-200'}`}>
-                {hexVal}
+              <span className={`font-semibold tracking-wider text-right ${isEsp ? 'text-amber-300' : 'text-slate-200'}`}>
+                {formattedVal}
               </span>
             </div>
           );
@@ -83,7 +117,10 @@ export const StackPanel: React.FC = () => {
 
       {/* Stack Legend */}
       <div className="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
-        <span>TOS Base: {stackTop.toString(16).toUpperCase()}h</span>
+        <div className="flex items-center gap-1">
+          <ArrowDown size={11} className="text-amber-400" />
+          <span>Grows Downward</span>
+        </div>
         <span>Slots: 32-bit (4 bytes)</span>
       </div>
     </div>

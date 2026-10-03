@@ -7,9 +7,22 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
 import { masmLanguage } from './masmLanguage';
 import { INSTRUCTION_TOOLTIPS } from './tooltips';
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { tags } from '@lezer/highlight';
 import { useCPUStore } from '../store/cpuStore';
 import { useUIStore } from '../store/uiStore';
 import { PersistenceManager } from '../store/persistence';
+
+const masmHighlightStyle = HighlightStyle.define([
+  { tag: tags.keyword, class: 'cm-keyword' },
+  { tag: tags.atom, class: 'cm-atom' },
+  { tag: tags.number, class: 'cm-number' },
+  { tag: tags.string, class: 'cm-string' },
+  { tag: tags.comment, class: 'cm-comment' },
+  { tag: tags.typeName, class: 'cm-typeName' },
+  { tag: tags.labelName, class: 'cm-variable-2' },
+  { tag: tags.variableName, class: 'cm-variable' },
+]);
 
 interface EditorPanelProps {
   initialCode: string;
@@ -123,6 +136,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap]),
         masmLanguage,
+        syntaxHighlighting(masmHighlightStyle),
         tooltipExtension,
         customTheme,
         EditorView.updateListener.of((update) => {

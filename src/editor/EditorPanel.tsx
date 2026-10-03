@@ -79,7 +79,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
       backgroundColor: '#090d16',
       color: '#f8fafc',
       height: '100%',
-      fontSize: `${fontSize}px`,
+      fontSize: 'var(--editor-font-size, 14px)',
       fontFamily: "'JetBrains Mono', Consolas, monospace",
     },
     '.cm-content': {
@@ -161,6 +161,13 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
     }
   }, [initialCode]);
 
+  // Update measurement and re-render line heights when font size changes
+  useEffect(() => {
+    if (viewRef.current) {
+      viewRef.current.requestMeasure();
+    }
+  }, [fontSize]);
+
   return (
     <div className="relative h-full flex flex-col bg-slate-950 border border-slate-800 rounded-lg overflow-hidden shadow-xl">
       {/* Code Editor Header */}
@@ -185,7 +192,11 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
       </div>
 
       {/* Editor Body */}
-      <div className="relative flex-1 overflow-auto" ref={editorRef} />
+      <div
+        className="relative flex-1 overflow-auto"
+        ref={editorRef}
+        style={{ '--editor-font-size': `${fontSize}px` } as React.CSSProperties}
+      />
 
       {/* Assembly Errors Footer if present */}
       {assemblyErrors.length > 0 && (

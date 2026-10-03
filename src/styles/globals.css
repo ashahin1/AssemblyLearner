@@ -34,6 +34,15 @@
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
 }
 
+/* Dynamic Editor Font Size */
+.cm-editor {
+  font-size: var(--editor-font-size, 14px) !important;
+}
+.cm-editor .cm-line,
+.cm-editor .cm-gutters {
+  font-size: var(--editor-font-size, 14px) !important;
+}
+
 /* =========================================================================
    LIGHT THEME OVERRIDES (Triggered when html:not(.dark) or html.light)
    ========================================================================= */

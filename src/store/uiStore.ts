@@ -12,6 +12,17 @@ const getInitialTheme = (): 'dark' | 'light' => {
   return 'dark';
 };
 
+const getInitialFontSize = (): number => {
+  try {
+    const saved = localStorage.getItem('coe224_font_size');
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 12 && parsed <= 24) return parsed;
+    }
+  } catch {}
+  return 14;
+};
+
 interface UIStoreState {
   theme: 'dark' | 'light';
   registerFormat: RegisterDisplayFormat;
@@ -33,7 +44,7 @@ export const useUIStore = create<UIStoreState>((set, get) => ({
   theme: getInitialTheme(),
   registerFormat: 'hex',
   executionSpeedMs: 200,
-  fontSize: 14,
+  fontSize: getInitialFontSize(),
   expandedRegisters: new Set(['eax']),
   isSettingsOpen: false,
 
@@ -60,7 +71,12 @@ export const useUIStore = create<UIStoreState>((set, get) => ({
 
   setRegisterFormat: (registerFormat) => set({ registerFormat }),
   setExecutionSpeedMs: (executionSpeedMs) => set({ executionSpeedMs }),
-  setFontSize: (fontSize) => set({ fontSize }),
+  setFontSize: (fontSize) => {
+    set({ fontSize });
+    try {
+      localStorage.setItem('coe224_font_size', fontSize.toString());
+    } catch {}
+  },
 
   toggleRegisterExpansion: (reg) => {
     const expanded = new Set(get().expandedRegisters);

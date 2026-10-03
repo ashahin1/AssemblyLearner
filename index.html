@@ -7,9 +7,38 @@
     <meta name="description" content="COE224: Assembly Language Studio - Interactive IA-32 / MASM x86 learning environment for Computer Engineering students at Buraydah College." />
     <meta name="theme-color" content="#0f172a" />
     <title>COE224: Assembly Language Studio</title>
+    <script>
+      // When opened directly via file:/// (e.g. double-click in Explorer or Smart TV),
+      // immediately load the single-file bundled app:
+      if (window.location.protocol === 'file:') {
+        window.location.replace('./COE224-Assembly-Studio.html' + window.location.hash);
+      }
+    </script>
   </head>
   <body class="bg-slate-900 text-slate-100 min-h-screen selection:bg-sky-500 selection:text-white">
-    <div id="root"></div>
+    <div id="root">
+      <noscript>
+        <div style="font-family:sans-serif;padding:2rem;color:#f8fafc;background:#0f172a;text-align:center;">
+          <h2>JavaScript Required</h2>
+          <p>Please enable JavaScript to run COE224 Assembly Studio.</p>
+        </div>
+      </noscript>
+      <div id="file-protocol-fallback" style="display:none;font-family:sans-serif;padding:3rem 1.5rem;color:#f8fafc;background:#0f172a;text-align:center;min-height:100vh;">
+        <h2 style="color:#38bdf8;font-size:1.5rem;margin-bottom:1rem;">COE224: Assembly Studio</h2>
+        <p style="color:#94a3b8;max-width:540px;margin:0 auto 1.5rem auto;line-height:1.6;">
+          Redirecting to standalone application... If not redirected automatically, please click below or open <strong style="color:#f8fafc;">COE224-Assembly-Studio.html</strong>:
+        </p>
+        <a href="./COE224-Assembly-Studio.html" style="display:inline-block;padding:0.75rem 1.5rem;background:#0284c7;color:#fff;border-radius:0.5rem;text-decoration:none;font-weight:bold;">
+          Open COE224-Assembly-Studio.html &rarr;
+        </a>
+      </div>
+      <script>
+        if (window.location.protocol === 'file:') {
+          var fb = document.getElementById('file-protocol-fallback');
+          if (fb) fb.style.display = 'block';
+        }
+      </script>
+    </div>
     <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>

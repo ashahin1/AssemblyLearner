@@ -6,10 +6,11 @@
   body {
     @apply bg-slate-950 text-slate-100 antialiased overflow-x-hidden;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
-/* Custom scrollbars for IDE panels */
+/* Custom scrollbars for IDE panels (Dark Mode default) */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -31,4 +32,176 @@
 /* Monospace font styling for assembly and hex displays */
 .font-code {
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+}
+
+/* =========================================================================
+   LIGHT THEME OVERRIDES (Triggered when html:not(.dark) or html.light)
+   ========================================================================= */
+
+html:not(.dark) body {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+html:not(.dark) header {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .bg-slate-950 {
+  background-color: #f8fafc !important;
+}
+
+html:not(.dark) .bg-slate-900 {
+  background-color: #ffffff !important;
+}
+
+html:not(.dark) .bg-slate-900\/80,
+html:not(.dark) .bg-slate-900\/90,
+html:not(.dark) .bg-slate-900\/50,
+html:not(.dark) .bg-slate-850 {
+  background-color: #ffffff !important;
+}
+
+html:not(.dark) .bg-slate-950\/80,
+html:not(.dark) .bg-slate-950\/90,
+html:not(.dark) .bg-slate-950\/70,
+html:not(.dark) .bg-slate-950\/60,
+html:not(.dark) .bg-slate-950\/50,
+html:not(.dark) .bg-slate-950\/40,
+html:not(.dark) .bg-slate-950\/30 {
+  background-color: #f1f5f9 !important;
+}
+
+html:not(.dark) .bg-slate-800 {
+  background-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .bg-slate-800\/60,
+html:not(.dark) .bg-slate-800\/50,
+html:not(.dark) .bg-slate-800\/40 {
+  background-color: #f1f5f9 !important;
+}
+
+html:not(.dark) .border-slate-800,
+html:not(.dark) .border-slate-800\/80,
+html:not(.dark) .border-slate-800\/60,
+html:not(.dark) .border-slate-800\/50,
+html:not(.dark) .border-slate-800\/40 {
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .border-slate-700,
+html:not(.dark) .border-slate-700\/60,
+html:not(.dark) .border-slate-700\/40 {
+  border-color: #cbd5e1 !important;
+}
+
+/* Typography in Light Mode */
+html:not(.dark) .text-white {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .text-slate-100 {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .text-slate-200 {
+  color: #1e293b !important;
+}
+
+html:not(.dark) .text-slate-300 {
+  color: #334155 !important;
+}
+
+html:not(.dark) .text-slate-400 {
+  color: #475569 !important;
+}
+
+html:not(.dark) .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Hover States in Light Mode */
+html:not(.dark) .hover\:bg-slate-800:hover {
+  background-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .hover\:bg-slate-700:hover {
+  background-color: #cbd5e1 !important;
+}
+
+html:not(.dark) .hover\:bg-slate-900:hover {
+  background-color: #f8fafc !important;
+}
+
+html:not(.dark) .hover\:text-white:hover,
+html:not(.dark) .hover\:text-slate-200:hover {
+  color: #0f172a !important;
+}
+
+/* Scrollbars in Light Mode */
+html:not(.dark) ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* CodeMirror 6 Editor in Light Mode */
+html:not(.dark) .cm-editor {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) .cm-content {
+  caret-color: #0284c7 !important;
+}
+
+html:not(.dark) .cm-gutters {
+  background-color: #f8fafc !important;
+  color: #64748b !important;
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+html:not(.dark) .cm-activeLine {
+  background-color: #f0f9ff !important;
+}
+
+html:not(.dark) .cm-activeLineGutter {
+  background-color: #e0f2fe !important;
+  color: #0284c7 !important;
+}
+
+html:not(.dark) .cm-keyword {
+  color: #0284c7 !important;
+}
+
+html:not(.dark) .cm-atom {
+  color: #0d9488 !important;
+}
+
+html:not(.dark) .cm-number {
+  color: #16a34a !important;
+}
+
+html:not(.dark) .cm-string {
+  color: #ea580c !important;
+}
+
+html:not(.dark) .cm-comment {
+  color: #64748b !important;
+}
+
+html:not(.dark) .cm-typeName {
+  color: #9333ea !important;
+}
+
+html:not(.dark) .cm-variable-2 {
+  color: #b45309 !important;
 }

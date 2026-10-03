@@ -52,4 +52,13 @@ describe('MASM Lexer', () => {
     expect(comments.length).toBe(1);
     expect(comments[0].value).toBe('; increment by 5');
   });
+
+  it('correctly tokenizes high 8-bit registers ah, bh, ch, dh as registers and not hex numbers', () => {
+    const code = 'mov ah, 10h\nmov bh, 20h\nmov ch, 30h\nmov dh, 40h';
+    const lexer = new Lexer(code);
+    const tokens = lexer.tokenize();
+
+    const regTokens = tokens.filter(t => t.type === TokenType.REGISTER);
+    expect(regTokens.map(t => t.value)).toEqual(['ah', 'bh', 'ch', 'dh']);
+  });
 });

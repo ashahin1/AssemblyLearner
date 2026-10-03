@@ -4,6 +4,14 @@ import { create } from 'zustand';
 
 export type RegisterDisplayFormat = 'hex' | 'unsigned' | 'signed' | 'binary';
 
+const getInitialTheme = (): 'dark' | 'light' => {
+  try {
+    const saved = localStorage.getItem('coe224_theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch {}
+  return 'dark';
+};
+
 interface UIStoreState {
   theme: 'dark' | 'light';
   registerFormat: RegisterDisplayFormat;
@@ -22,7 +30,7 @@ interface UIStoreState {
 }
 
 export const useUIStore = create<UIStoreState>((set, get) => ({
-  theme: 'dark',
+  theme: getInitialTheme(),
   registerFormat: 'hex',
   executionSpeedMs: 200,
   fontSize: 14,
@@ -31,15 +39,22 @@ export const useUIStore = create<UIStoreState>((set, get) => ({
 
   setTheme: (theme) => {
     set({ theme });
+    try {
+      localStorage.setItem('coe224_theme', theme);
+    } catch {}
+
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
     } else {
       document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
     }
   },
 
   toggleTheme: () => {
-    const next = get().theme === 'dark' ? 'light' : 'dark';
+    const current = get().theme;
+    const next = current === 'dark' ? 'light' : 'dark';
     get().setTheme(next);
   },
 

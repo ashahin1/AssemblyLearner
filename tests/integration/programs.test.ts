@@ -189,4 +189,56 @@ END main
 
     expect(consoleOutput).toBe("Buraydah College\n");
   });
+
+  it('executes Chapter 4 Little-Endian example with ah and BYTE PTR [val1 + 3]', async () => {
+    const code = `
+INCLUDE Irvine32.inc
+
+.data
+    val1 DWORD 12345678h
+
+.code
+main PROC
+    ; Read the lowest byte (78h)
+    mov al, BYTE PTR val1
+
+    ; Read the highest byte (12h)
+    mov ah, BYTE PTR [val1 + 3]
+
+    call DumpRegs
+    exit
+main ENDP
+END main
+`;
+    const tokens = new Lexer(code).tokenize();
+    const parsed = new Parser(tokens).assemble();
+    expect(parsed.errors.length).toBe(0);
+
+    const cpu = new CPU();
+    const memory = new MemoryManager();
+    memory.loadInitialData(parsed.initialData);
+    const history = new HistoryManager();
+    let consoleOutput = '';
+
+    const runner = new ProgramRunner(
+      parsed.instructions,
+      parsed.symbols,
+      cpu,
+      memory,
+      history,
+      (text) => (consoleOutput += text),
+      () => (consoleOutput = ''),
+      () => consoleOutput.length
+    );
+
+    const gen = runner.runGenerator();
+    let result = await gen.next();
+    while (!result.done && result.value?.type !== 'HALTED' && result.value?.type !== 'ERROR') {
+      result = await gen.next();
+    }
+
+    expect(cpu.getRegister('al')).toBe(0x78);
+    expect(cpu.getRegister('ah')).toBe(0x12);
+    expect(cpu.getRegister('ax')).toBe(0x1278);
+  });
 });

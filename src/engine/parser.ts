@@ -512,8 +512,11 @@ export class Parser {
     let indexReg: string | undefined;
     let scale: 1 | 2 | 4 | 8 = 1;
     let displacement = 0;
+    let symbolRef: string | undefined;
 
+    let currentSign = 1;
     let i = 0;
+
     while (i < tokens.length) {
       const t = tokens[i];
 
@@ -531,17 +534,32 @@ export class Parser {
           i++;
         }
       } else if (t.type === TokenType.PLUS) {
+        currentSign = 1;
         i++;
-        if (tokens[i]?.type === TokenType.NUMBER) {
-          displacement += tokens[i].numericValue ?? 0;
-          i++;
-        }
       } else if (t.type === TokenType.MINUS) {
+        currentSign = -1;
         i++;
-        if (tokens[i]?.type === TokenType.NUMBER) {
-          displacement -= tokens[i].numericValue ?? 0;
-          i++;
+      } else if (t.type === TokenType.NUMBER) {
+        displacement += currentSign * (t.numericValue ?? 0);
+        currentSign = 1;
+        i++;
+      } else if (t.type === TokenType.IDENTIFIER) {
+        const sym = this.symbols.get(t.value.toLowerCase());
+        if (sym) {
+          if (sym.kind === 'variable') {
+            displacement += currentSign * sym.address;
+            symbolRef = sym.name;
+            if (!ptrSize && sym.dataType) {
+              ptrSize = sym.dataType as 1 | 2 | 4;
+            }
+          } else if (sym.kind === 'constant') {
+            displacement += currentSign * (sym.value ?? 0);
+          }
+        } else {
+          throw new Error(`Line ${line}: Undefined symbol '${t.value}' inside memory brackets`);
         }
+        currentSign = 1;
+        i++;
       } else {
         i++;
       }
@@ -552,7 +570,8 @@ export class Parser {
       baseReg,
       indexReg,
       scale,
-      displacement,
+      displacement: displacement >>> 0,
+      symbolRef,
       size: ptrSize ?? 4,
       ptrSize,
     };

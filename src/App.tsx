@@ -77,6 +77,13 @@ const NavigationHeader: React.FC = () => {
 };
 
 export const App: React.FC = () => {
+  const theme = useUIStore((s) => s.theme);
+  const setTheme = useUIStore((s) => s.setTheme);
+
+  React.useEffect(() => {
+    setTheme(theme);
+  }, []);
+
   return (
     <HashRouter>
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">

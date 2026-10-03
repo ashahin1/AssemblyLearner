@@ -249,21 +249,7 @@ export class Lexer {
 
     const lower = text.toLowerCase();
 
-    // Check if it's a hex number like 0FFh or ABCh (though MASM requires 0ABCh, let's gracefully support hex with 'h' suffix)
-    if (/^[0-9a-f]+h$/i.test(text)) {
-      const num = this.parseMASMNumber(text);
-      if (num !== null) {
-        return {
-          type: TokenType.NUMBER,
-          value: text,
-          numericValue: num,
-          line: startLine,
-          column: startCol,
-        };
-      }
-    }
-
-    // Register?
+    // 1. Register? (Checked first so ah, bh, ch, dh are never misidentified as hex numbers)
     if (ALL_REGISTERS.includes(lower as any)) {
       return {
         type: TokenType.REGISTER,
@@ -273,7 +259,7 @@ export class Lexer {
       };
     }
 
-    // Instruction?
+    // 2. Instruction?
     if (INSTRUCTIONS.includes(lower as any)) {
       return {
         type: TokenType.INSTRUCTION,
@@ -283,7 +269,7 @@ export class Lexer {
       };
     }
 
-    // Directive / Keyword?
+    // 3. Directive / Keyword?
     if (DIRECTIVES.includes(lower as any)) {
       if (lower === 'proc') {
         return { type: TokenType.PROC, value: lower, line: startLine, column: startCol };
@@ -303,6 +289,20 @@ export class Lexer {
         line: startLine,
         column: startCol,
       };
+    }
+
+    // 4. Hex number fallback (e.g. 0FFh or FFh if not a register/instruction)
+    if (/^[0-9a-f]+h$/i.test(text)) {
+      const num = this.parseMASMNumber(text);
+      if (num !== null) {
+        return {
+          type: TokenType.NUMBER,
+          value: text,
+          numericValue: num,
+          line: startLine,
+          column: startCol,
+        };
+      }
     }
 
     return {

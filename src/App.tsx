@@ -12,12 +12,34 @@ import { Ch5Page } from './modules/ch5/Ch5Page';
 import { Ch6Page } from './modules/ch6/Ch6Page';
 import { Ch7Page } from './modules/ch7/Ch7Page';
 import { useUIStore } from './store/uiStore';
-import { Cpu, Terminal, BookOpen, Sun, Moon } from 'lucide-react';
+import { Cpu, Terminal, BookOpen, Sun, Moon, Tv, Maximize, Minimize, Plus, Minus } from 'lucide-react';
 
 const NavigationHeader: React.FC = () => {
   const location = useLocation();
   const theme = useUIStore((s) => s.theme);
   const toggleTheme = useUIStore((s) => s.toggleTheme);
+  const uiScale = useUIStore((s) => s.uiScale);
+  const zoomIn = useUIStore((s) => s.zoomIn);
+  const zoomOut = useUIStore((s) => s.zoomOut);
+  const resetZoom = useUIStore((s) => s.resetZoom);
+  const toggleTvMode = useUIStore((s) => s.toggleTvMode);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
 
   const isPlayground = location.pathname.startsWith('/playground');
   const isChapters = location.pathname.startsWith('/chapters');
@@ -62,8 +84,64 @@ const NavigationHeader: React.FC = () => {
         </Link>
       </nav>
 
-      {/* Right Controls */}
+      {/* Right Controls: Classroom TV, Zoom, Fullscreen & Theme */}
       <div className="flex items-center gap-2">
+        {/* Classroom TV Mode Toggle Button */}
+        <button
+          onClick={toggleTvMode}
+          title={uiScale >= 135 ? "Exit Classroom TV Mode (Reset to 100%)" : "Switch to Classroom TV Mode (140% Large UI for back rows)"}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border font-semibold text-xs transition shadow-sm ${
+            uiScale >= 135
+              ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-amber-500/10'
+              : 'bg-slate-800 text-slate-300 border-slate-700/60 hover:bg-slate-700 hover:text-white'
+          }`}
+        >
+          <Tv size={15} className={uiScale >= 135 ? 'text-amber-400 animate-pulse' : 'text-slate-400'} />
+          <span className="hidden sm:inline">TV Mode</span>
+          {uiScale >= 135 && (
+            <span className="text-[10px] font-mono px-1 py-0.2 bg-amber-400 text-slate-950 font-bold rounded">
+              {uiScale}%
+            </span>
+          )}
+        </button>
+
+        {/* Zoom Granular Control */}
+        <div className="flex items-center bg-slate-800 border border-slate-700/60 rounded-lg p-0.5 text-xs shadow-sm">
+          <button
+            onClick={zoomOut}
+            disabled={uiScale <= 80}
+            title="Zoom Out (Smaller UI)"
+            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent transition"
+          >
+            <Minus size={13} />
+          </button>
+          <button
+            onClick={resetZoom}
+            title="Click to reset UI scale to 100%"
+            className="px-1.5 py-0.5 text-[11px] font-mono font-bold text-slate-300 hover:text-sky-400 transition"
+          >
+            {uiScale}%
+          </button>
+          <button
+            onClick={zoomIn}
+            disabled={uiScale >= 200}
+            title="Zoom In (Enlarge UI for Classroom TV)"
+            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent transition"
+          >
+            <Plus size={13} />
+          </button>
+        </div>
+
+        {/* Fullscreen Toggle */}
+        <button
+          onClick={toggleFullscreen}
+          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen (Classroom Presentation)"}
+          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition border border-slate-700/60"
+        >
+          {isFullscreen ? <Minimize size={15} className="text-emerald-400" /> : <Maximize size={15} />}
+        </button>
+
+        {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
           title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
@@ -79,9 +157,12 @@ const NavigationHeader: React.FC = () => {
 export const App: React.FC = () => {
   const theme = useUIStore((s) => s.theme);
   const setTheme = useUIStore((s) => s.setTheme);
+  const uiScale = useUIStore((s) => s.uiScale);
+  const setUiScale = useUIStore((s) => s.setUiScale);
 
   React.useEffect(() => {
     setTheme(theme);
+    setUiScale(uiScale);
   }, []);
 
   return (

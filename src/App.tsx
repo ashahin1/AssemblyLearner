@@ -154,6 +154,20 @@ const NavigationHeader: React.FC = () => {
   );
 };
 
+const ScrollToTop: React.FC = () => {
+  const { pathname } = useLocation();
+
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+    const mainEl = document.getElementById('main-content');
+    if (mainEl) {
+      mainEl.scrollTop = 0;
+    }
+  }, [pathname]);
+
+  return null;
+};
+
 export const App: React.FC = () => {
   const theme = useUIStore((s) => s.theme);
   const setTheme = useUIStore((s) => s.setTheme);
@@ -167,20 +181,21 @@ export const App: React.FC = () => {
 
   return (
     <HashRouter>
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+      <ScrollToTop />
+      <div className="h-screen bg-slate-950 text-slate-100 flex flex-col font-sans overflow-hidden">
         <NavigationHeader />
-        <main className="flex-1 overflow-auto">
+        <main id="main-content" className="flex-1 min-h-0 flex flex-col overflow-hidden">
           <Routes>
             <Route path="/" element={<Navigate to="/playground" replace />} />
             <Route path="/playground" element={<PlaygroundPage />} />
-            <Route path="/chapters" element={<ModulesIndex />} />
-            <Route path="/chapters/1" element={<Ch1Page />} />
-            <Route path="/chapters/2" element={<Ch2Page />} />
-            <Route path="/chapters/3" element={<Ch3Page />} />
-            <Route path="/chapters/4" element={<Ch4Page />} />
-            <Route path="/chapters/5" element={<Ch5Page />} />
-            <Route path="/chapters/6" element={<Ch6Page />} />
-            <Route path="/chapters/7" element={<Ch7Page />} />
+            <Route path="/chapters" element={<div className="flex-1 min-h-0 overflow-y-auto"><ModulesIndex /></div>} />
+            <Route path="/chapters/1" element={<div className="flex-1 min-h-0 overflow-y-auto"><Ch1Page /></div>} />
+            <Route path="/chapters/2" element={<div className="flex-1 min-h-0 overflow-y-auto"><Ch2Page /></div>} />
+            <Route path="/chapters/3" element={<div className="flex-1 min-h-0 overflow-y-auto"><Ch3Page /></div>} />
+            <Route path="/chapters/4" element={<div className="flex-1 min-h-0 overflow-y-auto"><Ch4Page /></div>} />
+            <Route path="/chapters/5" element={<div className="flex-1 min-h-0 overflow-y-auto"><Ch5Page /></div>} />
+            <Route path="/chapters/6" element={<div className="flex-1 min-h-0 overflow-y-auto"><Ch6Page /></div>} />
+            <Route path="/chapters/7" element={<div className="flex-1 min-h-0 overflow-y-auto"><Ch7Page /></div>} />
             <Route path="*" element={<Navigate to="/playground" replace />} />
           </Routes>
         </main>

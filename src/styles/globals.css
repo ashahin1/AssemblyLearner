@@ -44,6 +44,16 @@
   font-size: var(--editor-font-size, 14px) !important;
 }
 
+/* Ensure CodeMirror stays strictly bounded to container and scrolls internally */
+.cm-editor {
+  height: 100% !important;
+  max-height: 100% !important;
+}
+.cm-editor .cm-scroller {
+  overflow: auto !important;
+  height: 100% !important;
+}
+
 /* =========================================================================
    LIGHT THEME OVERRIDES (Triggered when html:not(.dark) or html.light)
    ========================================================================= */

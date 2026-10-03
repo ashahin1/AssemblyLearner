@@ -92,6 +92,10 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
       fontSize: 'var(--editor-font-size, 14px)',
       fontFamily: "'JetBrains Mono', Consolas, monospace",
     },
+    '.cm-scroller': {
+      overflow: 'auto',
+      height: '100%',
+    },
     '.cm-content': {
       caretColor: '#38bdf8',
       padding: '12px 0',
@@ -245,7 +249,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
 
       {/* Editor Body */}
       <div
-        className="relative flex-1 overflow-auto"
+        className="relative flex-1 min-h-0 overflow-hidden"
         ref={editorRef}
         style={{ '--editor-font-size': `${fontSize}px` } as React.CSSProperties}
       />

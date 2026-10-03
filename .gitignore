@@ -28,5 +28,6 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Do not track huge textbook or temporary PDFs
-# Book/
+# Do not track textbook PDFs or PPT slides in repo
+Book/
+Lectures/

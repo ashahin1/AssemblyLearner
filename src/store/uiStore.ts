@@ -17,10 +17,21 @@ const getInitialFontSize = (): number => {
     const saved = localStorage.getItem('coe224_font_size');
     if (saved) {
       const parsed = parseInt(saved, 10);
-      if (!isNaN(parsed) && parsed >= 12 && parsed <= 24) return parsed;
+      if (!isNaN(parsed) && parsed >= 12 && parsed <= 32) return parsed;
     }
   } catch {}
   return 14;
+};
+
+const getInitialUiScale = (): number => {
+  try {
+    const saved = localStorage.getItem('coe224_ui_scale');
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 80 && parsed <= 200) return parsed;
+    }
+  } catch {}
+  return 100;
 };
 
 interface UIStoreState {
@@ -28,6 +39,7 @@ interface UIStoreState {
   registerFormat: RegisterDisplayFormat;
   executionSpeedMs: number;
   fontSize: number;
+  uiScale: number;
   expandedRegisters: Set<string>;
   isSettingsOpen: boolean;
 
@@ -36,6 +48,11 @@ interface UIStoreState {
   setRegisterFormat: (format: RegisterDisplayFormat) => void;
   setExecutionSpeedMs: (speed: number) => void;
   setFontSize: (size: number) => void;
+  setUiScale: (scale: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
+  toggleTvMode: () => void;
   toggleRegisterExpansion: (reg: string) => void;
   setIsSettingsOpen: (open: boolean) => void;
 }
@@ -45,6 +62,7 @@ export const useUIStore = create<UIStoreState>((set, get) => ({
   registerFormat: 'hex',
   executionSpeedMs: 200,
   fontSize: getInitialFontSize(),
+  uiScale: getInitialUiScale(),
   expandedRegisters: new Set(['eax']),
   isSettingsOpen: false,
 
@@ -72,10 +90,47 @@ export const useUIStore = create<UIStoreState>((set, get) => ({
   setRegisterFormat: (registerFormat) => set({ registerFormat }),
   setExecutionSpeedMs: (executionSpeedMs) => set({ executionSpeedMs }),
   setFontSize: (fontSize) => {
-    set({ fontSize });
+    const clamped = Math.max(12, Math.min(32, fontSize));
+    set({ fontSize: clamped });
     try {
-      localStorage.setItem('coe224_font_size', fontSize.toString());
+      localStorage.setItem('coe224_font_size', clamped.toString());
     } catch {}
+  },
+
+  setUiScale: (scale) => {
+    const clamped = Math.max(80, Math.min(200, Math.round(scale)));
+    set({ uiScale: clamped });
+    try {
+      localStorage.setItem('coe224_ui_scale', clamped.toString());
+    } catch {}
+
+    if (typeof document !== 'undefined') {
+      (document.documentElement.style as any).zoom = `${clamped}%`;
+      document.documentElement.style.setProperty('--app-ui-scale', (clamped / 100).toString());
+    }
+  },
+
+  zoomIn: () => {
+    const current = get().uiScale;
+    get().setUiScale(current + 10);
+  },
+
+  zoomOut: () => {
+    const current = get().uiScale;
+    get().setUiScale(current - 10);
+  },
+
+  resetZoom: () => {
+    get().setUiScale(100);
+  },
+
+  toggleTvMode: () => {
+    const current = get().uiScale;
+    if (current >= 135) {
+      get().setUiScale(100);
+    } else {
+      get().setUiScale(140);
+    }
   },
 
   toggleRegisterExpansion: (reg) => {

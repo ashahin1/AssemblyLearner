@@ -35,11 +35,12 @@
 }
 
 /* Dynamic Editor Font Size */
-.cm-editor {
-  font-size: var(--editor-font-size, 14px) !important;
-}
+.cm-editor,
+.cm-editor .cm-scroller,
+.cm-editor .cm-content,
 .cm-editor .cm-line,
-.cm-editor .cm-gutters {
+.cm-editor .cm-gutters,
+.cm-editor .cm-gutterElement {
   font-size: var(--editor-font-size, 14px) !important;
 }
 

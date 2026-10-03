@@ -53,14 +53,14 @@ export const PlaygroundPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-53px)] bg-slate-950 overflow-hidden select-none">
+    <div className="flex flex-col min-h-[calc(100vh-53px)] bg-slate-950 overflow-y-auto select-none">
       {/* Top Controls Toolbar */}
       <Toolbar currentCode={code} onOpenExamples={() => setIsExamplesOpen(true)} />
 
       {/* Main Workspace Grid */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 p-2 min-h-0 overflow-hidden">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 p-2 min-h-0">
         {/* Left Column: Code Editor (5 cols) */}
-        <div className="lg:col-span-5 flex flex-col h-full min-h-0">
+        <div className="lg:col-span-5 flex flex-col min-h-[380px] h-full">
           <EditorPanel
             initialCode={code}
             onCodeChange={(newCode) => {

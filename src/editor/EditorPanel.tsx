@@ -1,7 +1,6 @@
 // COE224: Assembly Language Studio - CodeMirror 6 Editor Panel
 
-import React, { useEffect, useRef, useState } from 'react';
-import { EditorState } from '@codemirror/state';
+import { EditorState, Compartment } from '@codemirror/state';
 import { EditorView, lineNumbers, hoverTooltip } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
@@ -32,6 +31,7 @@ interface EditorPanelProps {
 export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeChange }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const fontSizeCompartment = useRef(new Compartment());
   const [activeCode, setActiveCode] = useState(initialCode);
 
   const currentExecutionLine = useCPUStore((s) => s.currentExecutionLine);
@@ -39,6 +39,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
   const breakpoints = useCPUStore((s) => s.breakpoints);
   const toggleBreakpoint = useCPUStore((s) => s.toggleBreakpoint);
   const fontSize = useUIStore((s) => s.fontSize);
+  const setFontSize = useUIStore((s) => s.setFontSize);
 
   // Setup CodeMirror Tooltip Extension
   const tooltipExtension = hoverTooltip((view, pos) => {
@@ -139,6 +140,15 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
         syntaxHighlighting(masmHighlightStyle),
         tooltipExtension,
         customTheme,
+        fontSizeCompartment.current.of(
+          EditorView.theme({
+            '&': { fontSize: `${fontSize}px` },
+            '.cm-scroller': { fontSize: `${fontSize}px` },
+            '.cm-content': { fontSize: `${fontSize}px` },
+            '.cm-line': { fontSize: `${fontSize}px` },
+            '.cm-gutters': { fontSize: `${fontSize}px` },
+          })
+        ),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             const newCode = update.state.doc.toString();
@@ -178,6 +188,17 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
   // Update measurement and re-render line heights when font size changes
   useEffect(() => {
     if (viewRef.current) {
+      viewRef.current.dispatch({
+        effects: fontSizeCompartment.current.reconfigure(
+          EditorView.theme({
+            '&': { fontSize: `${fontSize}px` },
+            '.cm-scroller': { fontSize: `${fontSize}px` },
+            '.cm-content': { fontSize: `${fontSize}px` },
+            '.cm-line': { fontSize: `${fontSize}px` },
+            '.cm-gutters': { fontSize: `${fontSize}px` },
+          })
+        ),
+      });
       viewRef.current.requestMeasure();
     }
   }, [fontSize]);
@@ -192,6 +213,27 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
           <span className="text-[11px] text-slate-500">(MASM x86 IA-32)</span>
         </div>
         <div className="flex items-center gap-2 text-[11px]">
+          {/* Quick Font Size Controls for Classroom TV / Lectern */}
+          <div className="flex items-center bg-slate-800/90 border border-slate-700/60 rounded px-1.5 py-0.5 text-[10px] gap-1">
+            <button
+              onClick={() => setFontSize(fontSize - 2)}
+              disabled={fontSize <= 12}
+              title="Decrease editor font size"
+              className="text-slate-400 hover:text-white disabled:opacity-30 font-bold px-0.5 transition"
+            >
+              A-
+            </button>
+            <span className="font-mono text-sky-400 font-semibold px-0.5">{fontSize}px</span>
+            <button
+              onClick={() => setFontSize(fontSize + 2)}
+              disabled={fontSize >= 32}
+              title="Increase editor font size (for classroom)"
+              className="text-slate-400 hover:text-white disabled:opacity-30 font-bold px-0.5 transition"
+            >
+              A+
+            </button>
+          </div>
+
           {currentExecutionLine && (
             <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Line {currentExecutionLine}

@@ -1,5 +1,4 @@
-// COE224: Assembly Language Studio - CodeMirror 6 Editor Panel
-
+import React, { useEffect, useRef, useState } from 'react';
 import { EditorState, Compartment } from '@codemirror/state';
 import { EditorView, lineNumbers, hoverTooltip } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
@@ -36,19 +35,16 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
 
   const currentExecutionLine = useCPUStore((s) => s.currentExecutionLine);
   const assemblyErrors = useCPUStore((s) => s.assemblyErrors);
-  const breakpoints = useCPUStore((s) => s.breakpoints);
-  const toggleBreakpoint = useCPUStore((s) => s.toggleBreakpoint);
   const fontSize = useUIStore((s) => s.fontSize);
   const setFontSize = useUIStore((s) => s.setFontSize);
 
   // Setup CodeMirror Tooltip Extension
   const tooltipExtension = hoverTooltip((view, pos) => {
-    const { from, to, text } = view.state.doc.lineAt(pos);
+    const { from, text } = view.state.doc.lineAt(pos);
     const lineText = text;
     const col = pos - from;
 
     // Extract word at hover position
-    const words = lineText.slice(0, col).split(/[\s,]+/);
     const currentWordMatch = lineText.slice(col).match(/^[a-zA-Z0-9_]+/);
     const beforeWordMatch = lineText.slice(0, col).match(/[a-zA-Z0-9_]+$/);
 

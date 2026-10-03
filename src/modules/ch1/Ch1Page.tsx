@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { OpenInPlayground } from '../shared/OpenInPlayground';
-import { ArrowLeft, RefreshCw, Calculator, Hash, Binary } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Calculator, Binary } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Ch1Page: React.FC = () => {

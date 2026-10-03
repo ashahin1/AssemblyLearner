@@ -63,7 +63,7 @@ export const ModulesIndex: React.FC = () => {
       <div className="bg-gradient-to-r from-sky-950/60 via-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
-            <span>COE224 • Buraydah College</span>
+            <span>COE224 • Buraydah Private Colleges</span>
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
             Curriculum Interactive Learning Modules

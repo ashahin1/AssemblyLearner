@@ -12,7 +12,7 @@ export const CODE_EXAMPLES: CodeExample[] = [
     code: `INCLUDE Irvine32.inc
 
 .data
-    greeting BYTE "Hello, Computer Engineering Students at Buraydah College!", 0
+    greeting BYTE "Hello, Computer Engineering Students at Buraydah Private Colleges!", 0
 
 .code
 main PROC

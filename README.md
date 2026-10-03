@@ -1,7 +1,7 @@
 # COE224: Assembly Language Studio
 
 **Interactive Learning Environment & IA-32 Simulator**  
-*Buraydah College, Faculty of Engineering and Information Technology*  
+*Buraydah Private Colleges, Faculty of Engineering and Information Technology*  
 *Curriculum Text:* **Assembly Language for x86 Processors (7th Edition)** by Kip R. Irvine (Chapters 1–7)
 
 ---
@@ -154,4 +154,4 @@ For campus lab PCs:
 
 ---
 
-*Faculty of Engineering and Information Technology, Buraydah College*
+*Faculty of Engineering and Information Technology, Buraydah Private Colleges*

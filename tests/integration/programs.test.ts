@@ -150,7 +150,7 @@ END main
     const code = `
 INCLUDE Irvine32.inc
 .data
-msg BYTE "Buraydah College", 0
+msg BYTE "Buraydah Private Colleges", 0
 .code
 main PROC
     mov edx, OFFSET msg
@@ -187,7 +187,7 @@ END main
       result = await gen.next();
     }
 
-    expect(consoleOutput).toBe("Buraydah College\n");
+    expect(consoleOutput).toBe("Buraydah Private Colleges\n");
   });
 
   it('executes Chapter 4 Little-Endian example with ah and BYTE PTR [val1 + 3]', async () => {

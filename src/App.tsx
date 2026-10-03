@@ -53,7 +53,7 @@ const NavigationHeader: React.FC = () => {
         </div>
         <div className="flex flex-col">
           <span className="leading-none text-sky-400 font-bold">COE224: Assembly Studio</span>
-          <span className="text-[10px] text-slate-400 font-normal">Buraydah College • x86 IA-32</span>
+          <span className="text-[10px] text-slate-400 font-normal">Buraydah Private Colleges • x86 IA-32</span>
         </div>
       </Link>
 

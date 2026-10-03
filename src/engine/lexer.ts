@@ -159,14 +159,6 @@ export class Lexer {
     return ch >= '0' && ch <= '9';
   }
 
-  private isHexDigit(ch: string): boolean {
-    return (
-      (ch >= '0' && ch <= '9') ||
-      (ch >= 'a' && ch <= 'f') ||
-      (ch >= 'A' && ch <= 'F')
-    );
-  }
-
   private isAlphaOrSpecial(ch: string): boolean {
     return (
       (ch >= 'a' && ch <= 'z') ||

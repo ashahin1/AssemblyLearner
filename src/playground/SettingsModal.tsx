@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useUIStore, RegisterDisplayFormat } from '../store/uiStore';
-import { X, Settings, Moon, Sun, Tv, Maximize } from 'lucide-react';
+import { X, Settings, Moon, Sun, Tv } from 'lucide-react';
 
 export const SettingsModal: React.FC = () => {
   const isSettingsOpen = useUIStore((s) => s.isSettingsOpen);

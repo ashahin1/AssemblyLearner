@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { OpenInPlayground } from '../shared/OpenInPlayground';
-import { ArrowLeft, ArrowRight, Binary, HelpCircle, Check, X } from 'lucide-react';
+import { ArrowLeft, Binary, HelpCircle, Check, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Ch4Page: React.FC = () => {

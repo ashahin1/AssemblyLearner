@@ -10,6 +10,8 @@ export enum TokenType {
   DATA_TYPE = 'DATA_TYPE',
   OPERATOR = 'OPERATOR',
   KEYWORD = 'KEYWORD',
+  PROC = 'PROC',
+  ENDP = 'ENDP',
   COMMA = 'COMMA',
   COLON = 'COLON',
   LBRACKET = 'LBRACKET',

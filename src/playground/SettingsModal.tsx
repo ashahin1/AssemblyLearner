@@ -1,10 +1,12 @@
 // COE224: Assembly Language Studio - Settings Modal
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useUIStore, RegisterDisplayFormat } from '../store/uiStore';
-import { X, Settings, Moon, Sun, Tv } from 'lucide-react';
+import { X, Settings, Moon, Sun, Tv, RotateCcw, AlertTriangle } from 'lucide-react';
+import { PersistenceManager } from '../store/persistence';
 
 export const SettingsModal: React.FC = () => {
+  const [showConfirmReset, setShowConfirmReset] = useState(false);
   const isSettingsOpen = useUIStore((s) => s.isSettingsOpen);
   const setIsSettingsOpen = useUIStore((s) => s.setIsSettingsOpen);
   const theme = useUIStore((s) => s.theme);
@@ -179,6 +181,61 @@ export const SettingsModal: React.FC = () => {
               {theme === 'dark' ? <Moon size={14} className="text-sky-400" /> : <Sun size={14} className="text-amber-400" />}
               <span className="capitalize">{theme} Mode</span>
             </button>
+          </div>
+
+          {/* Global Reset / Clean Slate */}
+          <div className="pt-3 border-t border-slate-800">
+            <div className="p-3.5 rounded-lg bg-rose-500/10 border border-rose-500/30 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-bold text-rose-500 dark:text-rose-400">
+                  <RotateCcw size={15} />
+                  <span>Restore Clean Slate</span>
+                </div>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-700 dark:text-rose-300 font-semibold border border-rose-500/30">
+                  Factory Defaults
+                </span>
+              </div>
+
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                Wipes all saved student code from browser storage, resets CPU registers and memory, and restores factory defaults (100% UI scale, 14px font, starter template).
+              </p>
+
+              {!showConfirmReset ? (
+                <button
+                  onClick={() => setShowConfirmReset(true)}
+                  className="w-full py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  <RotateCcw size={13} />
+                  <span>Reset All to Clean Slate</span>
+                </button>
+              ) : (
+                <div className="p-2.5 rounded bg-rose-950/40 border border-rose-500/40 space-y-2">
+                  <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-300 text-[11px] font-bold">
+                    <AlertTriangle size={14} className="shrink-0" />
+                    <span>Are you sure? All saved code and current progress will be reset.</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        PersistenceManager.clearAll();
+                        const cleanUrl = window.location.pathname + '#/playground';
+                        window.history.replaceState(null, '', cleanUrl);
+                        window.location.reload();
+                      }}
+                      className="flex-1 py-1.5 px-3 rounded bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-sm"
+                    >
+                      Yes, Wipe &amp; Reset
+                    </button>
+                    <button
+                      onClick={() => setShowConfirmReset(false)}
+                      className="flex-1 py-1.5 px-3 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

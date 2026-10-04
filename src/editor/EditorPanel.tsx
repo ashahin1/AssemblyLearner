@@ -130,6 +130,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
 
   const currentExecutionLine = useCPUStore((s) => s.currentExecutionLine);
   const assemblyErrors = useCPUStore((s) => s.assemblyErrors);
+  const isHalted = useCPUStore((s) => s.isHalted);
   const isCodeDirty = useCPUStore((s) => s.isCodeDirty);
   const totalStepsRecorded = useCPUStore((s) => s.totalStepsRecorded);
   const fontSize = useUIStore((s) => s.fontSize);
@@ -380,15 +381,27 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
           <span className="text-[11px] text-slate-500 hidden sm:inline shrink-0">(MASM x86 IA-32)</span>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] shrink-0">
+          {/* Program Finished (Halted) Badge */}
+          {isHalted && !isCodeDirty && !currentExecutionLine && (
+            <span
+              title="Program execution completed. Click Restart to reload at Line 1."
+              className="px-1.5 sm:px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 font-mono text-[10px] sm:text-[11px] shrink-0"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span>Halted</span>
+              <span className="hidden md:inline">(Finished)</span>
+            </span>
+          )}
+
           {/* Stale Code Notification Badge */}
           {isStaleSession && (
             <span
-              title="Code was modified during debugging. Registers remain frozen for inspection. Next Step or Run will restart from the beginning."
+              title="Code was modified. Registers remain frozen for inspection. Click Restart to reload at Line 1."
               className="px-1.5 sm:px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 text-[10px] sm:text-[11px] font-medium shrink-0 animate-pulse"
             >
               <AlertTriangle size={12} className="text-amber-400 shrink-0" />
               <span>Modified</span>
-              <span className="hidden md:inline">• Will Restart</span>
+              <span className="hidden md:inline">• Click Restart</span>
             </span>
           )}
 

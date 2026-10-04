@@ -276,3 +276,20 @@ html:not(.dark) .cm-execution-gutter-marker-stale {
   filter: none;
 }
 
+/* Light Mode Chip Contrast Overrides */
+html:not(.dark) .text-emerald-300,
+html:not(.dark) .text-emerald-400 {
+  color: #047857 !important;
+}
+
+html:not(.dark) .text-amber-300,
+html:not(.dark) .text-amber-400 {
+  color: #b45309 !important;
+}
+
+html:not(.dark) .text-sky-300,
+html:not(.dark) .text-sky-400 {
+  color: #0369a1 !important;
+}
+
+

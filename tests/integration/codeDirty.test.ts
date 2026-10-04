@@ -115,4 +115,73 @@ END main
     await useCPUStore.getState().stepForward();
     expect(useCPUStore.getState().cpuState.registers.eax).toBe(100);
   });
+
+  it('guarantees 2-step restart flow when program has halted: press 1 parks at Line 1, press 2 executes Line 1', async () => {
+    // 1. Run until halted
+    useCPUStore.getState().assembleCode(sampleCode);
+    while (!useCPUStore.getState().isHalted) {
+      await useCPUStore.getState().stepForward();
+    }
+    expect(useCPUStore.getState().isHalted).toBe(true);
+    expect(useCPUStore.getState().currentExecutionLine).toBeNull();
+    // EAX was 10 + 20 = 30 at end of program
+    expect(useCPUStore.getState().cpuState.registers.eax).toBe(30);
+
+    // 2. Step 1 (Restart): Simulator resets and reassembles, parking at Line 1
+    useCPUStore.getState().reset();
+    const ok = useCPUStore.getState().assembleCode(sampleCode);
+    expect(ok).toBe(true);
+
+    const parkedState = useCPUStore.getState();
+    expect(parkedState.isHalted).toBe(false);
+    // Line 1 is primed and waiting (mov eax, 10 is at line 5)
+    expect(parkedState.currentExecutionLine).toBe(5);
+    // CRITICAL REQUIREMENT: Line 1 has NOT been executed yet! EAX must be pristine 0
+    expect(parkedState.cpuState.registers.eax).toBe(0);
+    expect(parkedState.totalStepsRecorded).toBe(0);
+
+    // 3. Step 2 (Step Forward): Now user executes Line 1
+    await useCPUStore.getState().stepForward();
+    const executedState = useCPUStore.getState();
+    // Now line 1 has executed
+    expect(executedState.cpuState.registers.eax).toBe(10);
+    expect(executedState.totalStepsRecorded).toBe(1);
+    // Pointer moved to next line (mov ebx, 20 at line 6)
+    expect(executedState.currentExecutionLine).toBe(6);
+  });
+
+  it('guarantees 2-step restart flow when code is modified after program has halted', async () => {
+    // 1. Run until halted
+    useCPUStore.getState().assembleCode(sampleCode);
+    while (!useCPUStore.getState().isHalted) {
+      await useCPUStore.getState().stepForward();
+    }
+    expect(useCPUStore.getState().isHalted).toBe(true);
+    expect(useCPUStore.getState().cpuState.registers.eax).toBe(30);
+
+    // 2. User edits code after program finished
+    const modifiedCode = sampleCode.replace('mov eax, 10', 'mov eax, 500');
+    useCPUStore.getState().checkCodeDirty(modifiedCode);
+    expect(useCPUStore.getState().isCodeDirty).toBe(true);
+
+    // Verification: previous run registers remain visible for inspection
+    expect(useCPUStore.getState().cpuState.registers.eax).toBe(30);
+
+    // 3. Step 1 (Restart): Reassembles modified code, resets, parks at Line 1
+    useCPUStore.getState().reset();
+    const ok = useCPUStore.getState().assembleCode(modifiedCode);
+    expect(ok).toBe(true);
+
+    const parkedState = useCPUStore.getState();
+    expect(parkedState.isCodeDirty).toBe(false);
+    expect(parkedState.isHalted).toBe(false);
+    expect(parkedState.currentExecutionLine).toBe(5);
+    // EAX must be 0 before step 1
+    expect(parkedState.cpuState.registers.eax).toBe(0);
+
+    // 4. Step 2 (Step Forward): Executes Line 1 of modified program
+    await useCPUStore.getState().stepForward();
+    expect(useCPUStore.getState().cpuState.registers.eax).toBe(500);
+    expect(useCPUStore.getState().currentExecutionLine).toBe(6);
+  });
 });

@@ -8,10 +8,11 @@
 
 ## 🌟 Overview
 
-**COE224 Assembly Studio** is a 100% client-side, browser-based x86 educational IDE and interactive learning platform built for Computer Engineering students. It requires **zero software installation**, runs on Windows, Mac, Linux, iPad, and **Classroom Android Smart TVs**, and operates completely offline.
+**COE224 Assembly Studio** is a 100% client-side, browser-based x86 educational IDE and interactive learning platform built for Computer Engineering students. It requires **zero software installation**, runs on Windows, Mac, Linux, iPad, **Smartphones (iOS & Android)**, and **Classroom Android Smart TVs**, and operates completely offline.
 
 ### Key Capabilities:
 - **Playground IDE & Simulator:**
+  - **Responsive Mobile & Smartphone Layout:** Dynamic bottom tab bar (`Code`, `Registers & Flags`, `Memory & Stack`, `Console`) with state retention, auto-switching on keyboard input, unread output badge, and `100dvh` safe-area support.
   - **Syntax Highlighting (CodeMirror 6):** Rich syntax colorization for MASM instructions, registers, directives, numeric literals, and comments across both Dark and Light themes.
   - **Classroom TV Mode & Global UI Zoom (80%–200%):** One-click `📺 TV Mode` (140% zoom) and granular `[-] / [+]` scale controls designed specifically so students in the back rows of large lecture rooms can read all panels clearly.
   - **Presentation Fullscreen Toggle (⛶):** Hides browser toolbars and OS taskbars on classroom TVs and projectors.

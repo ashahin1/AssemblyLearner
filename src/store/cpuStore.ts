@@ -32,10 +32,13 @@ interface CPUStoreState {
   isHalted: boolean;
   assemblyErrors: AssemblyError[];
   isAssembled: boolean;
+  assembledCode: string | null;
+  isCodeDirty: boolean;
   breakpoints: Set<number>;
 
   // Actions
   assembleCode: (code: string) => boolean;
+  checkCodeDirty: (currentCode: string) => void;
   runContinuous: (delayMs?: number) => Promise<void>;
   stepForward: () => Promise<void>;
   stepBackward: () => void;
@@ -76,6 +79,8 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
     isHalted: false,
     assemblyErrors: [],
     isAssembled: false,
+    assembledCode: null,
+    isCodeDirty: false,
     breakpoints: new Set(),
 
     assembleCode: (code: string) => {
@@ -91,6 +96,8 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
         set({
           assemblyErrors: parsed.errors,
           isAssembled: false,
+          assembledCode: null,
+          isCodeDirty: false,
           currentExecutionLine: null,
           runner: null,
           generator: null,
@@ -118,6 +125,8 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
         generator,
         assemblyErrors: [],
         isAssembled: true,
+        assembledCode: code,
+        isCodeDirty: false,
         cpuState: cpu.getState(),
         changedRegisters: new Set(),
         flagDiagnostics: [],
@@ -131,6 +140,16 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
       });
 
       return true;
+    },
+
+    checkCodeDirty: (currentCode: string) => {
+      const { isAssembled, assembledCode, isCodeDirty } = get();
+      if (isAssembled && assembledCode !== null) {
+        const dirty = currentCode !== assembledCode;
+        if (isCodeDirty !== dirty) {
+          set({ isCodeDirty: dirty });
+        }
+      }
     },
 
     stepForward: async () => {
@@ -248,6 +267,7 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
         currentExecutionLine: null,
         currentStepIndex: 0,
         totalStepsRecorded: 0,
+        isCodeDirty: false,
       });
     },
 

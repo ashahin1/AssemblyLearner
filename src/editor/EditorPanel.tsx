@@ -3,6 +3,7 @@ import { EditorState, Compartment, StateEffect, StateField, RangeSet } from '@co
 import { EditorView, lineNumbers, hoverTooltip, gutter, GutterMarker, Decoration, type DecorationSet } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
+import { AlertTriangle } from 'lucide-react';
 import { masmLanguage } from './masmLanguage';
 import { INSTRUCTION_TOOLTIPS } from './tooltips';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
@@ -11,18 +12,39 @@ import { useCPUStore } from '../store/cpuStore';
 import { useUIStore } from '../store/uiStore';
 import { PersistenceManager } from '../store/persistence';
 
-export const setExecutionLineEffect = StateEffect.define<number | null>();
+export type ExecutionLinePayload =
+  | number
+  | null
+  | { line: number | null; isStale?: boolean };
+
+export const setExecutionLineEffect = StateEffect.define<ExecutionLinePayload>();
+
+function parseExecutionLineEffect(val: ExecutionLinePayload): { lineNum: number | null; isStale: boolean } {
+  if (val === null || val === undefined) {
+    return { lineNum: null, isStale: false };
+  }
+  if (typeof val === 'number') {
+    return { lineNum: val, isStale: false };
+  }
+  return { lineNum: val.line, isStale: !!val.isStale };
+}
 
 class ExecutionGutterMarker extends GutterMarker {
+  constructor(readonly isStale: boolean = false) {
+    super();
+  }
   toDOM() {
     const span = document.createElement('span');
-    span.className = 'cm-execution-gutter-marker';
+    span.className = this.isStale
+      ? 'cm-execution-gutter-marker cm-execution-gutter-marker-stale'
+      : 'cm-execution-gutter-marker';
     span.textContent = '▶';
     return span;
   }
 }
 
-const executionGutterMarkerInstance = new ExecutionGutterMarker();
+const executionGutterMarkerInstance = new ExecutionGutterMarker(false);
+const executionGutterMarkerStaleInstance = new ExecutionGutterMarker(true);
 
 const executionGutterField = StateField.define<RangeSet<GutterMarker>>({
   create() {
@@ -32,13 +54,14 @@ const executionGutterField = StateField.define<RangeSet<GutterMarker>>({
     markers = markers.map(tr.changes);
     for (const effect of tr.effects) {
       if (effect.is(setExecutionLineEffect)) {
-        const lineNum = effect.value;
+        const { lineNum, isStale } = parseExecutionLineEffect(effect.value);
         if (!lineNum || lineNum <= 0 || lineNum > tr.state.doc.lines) {
           return RangeSet.empty;
         }
         try {
           const line = tr.state.doc.line(lineNum);
-          return RangeSet.of([executionGutterMarkerInstance.range(line.from)]);
+          const marker = isStale ? executionGutterMarkerStaleInstance : executionGutterMarkerInstance;
+          return RangeSet.of([marker.range(line.from)]);
         } catch {
           return RangeSet.empty;
         }
@@ -62,7 +85,7 @@ const executionLineField = StateField.define<DecorationSet>({
     decorations = decorations.map(tr.changes);
     for (const effect of tr.effects) {
       if (effect.is(setExecutionLineEffect)) {
-        const lineNum = effect.value;
+        const { lineNum, isStale } = parseExecutionLineEffect(effect.value);
         if (!lineNum || lineNum <= 0 || lineNum > tr.state.doc.lines) {
           return Decoration.none;
         }
@@ -70,7 +93,7 @@ const executionLineField = StateField.define<DecorationSet>({
           const line = tr.state.doc.line(lineNum);
           return Decoration.set([
             Decoration.line({
-              class: 'cm-execution-line',
+              class: isStale ? 'cm-execution-line cm-execution-line-stale' : 'cm-execution-line',
             }).range(line.from),
           ]);
         } catch {
@@ -107,8 +130,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
 
   const currentExecutionLine = useCPUStore((s) => s.currentExecutionLine);
   const assemblyErrors = useCPUStore((s) => s.assemblyErrors);
+  const isCodeDirty = useCPUStore((s) => s.isCodeDirty);
+  const totalStepsRecorded = useCPUStore((s) => s.totalStepsRecorded);
   const fontSize = useUIStore((s) => s.fontSize);
   const setFontSize = useUIStore((s) => s.setFontSize);
+
+  const isStaleSession = isCodeDirty && totalStepsRecorded > 0;
 
   // Setup CodeMirror Tooltip Extension
   const tooltipExtension = hoverTooltip((view, pos) => {
@@ -194,6 +221,11 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
       backgroundColor: 'rgba(234, 179, 8, 0.20) !important',
       borderLeft: '3px solid #f59e0b !important',
     },
+    '.cm-execution-line-stale': {
+      backgroundColor: 'rgba(234, 179, 8, 0.08) !important',
+      borderLeft: '3px dashed #f59e0b !important',
+      opacity: '0.65',
+    },
     '.cm-execution-gutter': {
       width: '18px',
       backgroundColor: '#070a12',
@@ -211,6 +243,11 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
       lineHeight: '1',
       fontWeight: 'bold',
       filter: 'drop-shadow(0 0 4px rgba(245, 158, 11, 0.6))',
+    },
+    '.cm-execution-gutter-marker-stale': {
+      color: '#d97706',
+      opacity: '0.5',
+      filter: 'none',
     },
     // Syntax Token Colors
     '.cm-keyword': { color: '#38bdf8', fontWeight: 'bold' },
@@ -252,6 +289,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
             const newCode = update.state.doc.toString();
             setActiveCode(newCode);
             onCodeChange(newCode);
+            useCPUStore.getState().checkCodeDirty(newCode);
             PersistenceManager.saveCode(newCode);
           }
         }),
@@ -267,7 +305,10 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
 
     if (currentExecutionLine) {
       view.dispatch({
-        effects: setExecutionLineEffect.of(currentExecutionLine),
+        effects: setExecutionLineEffect.of({
+          line: currentExecutionLine,
+          isStale: isStaleSession,
+        }),
       });
     }
 
@@ -313,7 +354,10 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
     const view = viewRef.current;
 
     view.dispatch({
-      effects: setExecutionLineEffect.of(currentExecutionLine),
+      effects: setExecutionLineEffect.of({
+        line: currentExecutionLine,
+        isStale: isStaleSession,
+      }),
     });
 
     if (currentExecutionLine && currentExecutionLine > 0 && currentExecutionLine <= view.state.doc.lines) {
@@ -324,20 +368,32 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
         });
       } catch {}
     }
-  }, [currentExecutionLine]);
+  }, [currentExecutionLine, isStaleSession]);
 
   return (
     <div className="relative h-full flex flex-col bg-slate-950 border border-slate-800 rounded-lg overflow-hidden shadow-xl">
       {/* Code Editor Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-slate-900/80 border-b border-slate-800 text-xs text-slate-400">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-sky-500 animate-pulse"></span>
-          <span className="font-semibold text-slate-200">main.asm</span>
-          <span className="text-[11px] text-slate-500">(MASM x86 IA-32)</span>
+      <div className="flex items-center justify-between px-3 py-2 bg-slate-900/80 border-b border-slate-800 text-xs text-slate-400 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-2.5 h-2.5 rounded-full bg-sky-500 animate-pulse shrink-0"></span>
+          <span className="font-semibold text-slate-200 truncate">main.asm</span>
+          <span className="text-[11px] text-slate-500 hidden sm:inline shrink-0">(MASM x86 IA-32)</span>
         </div>
-        <div className="flex items-center gap-2 text-[11px]">
+        <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] shrink-0">
+          {/* Stale Code Notification Badge */}
+          {isStaleSession && (
+            <span
+              title="Code was modified during debugging. Registers remain frozen for inspection. Next Step or Run will restart from the beginning."
+              className="px-1.5 sm:px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 text-[10px] sm:text-[11px] font-medium shrink-0 animate-pulse"
+            >
+              <AlertTriangle size={12} className="text-amber-400 shrink-0" />
+              <span>Modified</span>
+              <span className="hidden md:inline">• Will Restart</span>
+            </span>
+          )}
+
           {/* Quick Font Size Controls for Classroom TV / Lectern */}
-          <div className="flex items-center bg-slate-800/90 border border-slate-700/60 rounded px-1.5 py-0.5 text-[10px] gap-1">
+          <div className="flex items-center bg-slate-800/90 border border-slate-700/60 rounded px-1.5 py-0.5 text-[10px] gap-1 shrink-0">
             <button
               onClick={() => setFontSize(fontSize - 2)}
               disabled={fontSize <= 12}
@@ -358,13 +414,22 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
           </div>
 
           {currentExecutionLine && (
-            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Line {currentExecutionLine}
+            <span
+              title={isStaleSession ? "Execution line (frozen)" : `Execution line ${currentExecutionLine}`}
+              className={`px-1.5 sm:px-2 py-0.5 rounded border flex items-center gap-1 font-mono text-[10px] sm:text-[11px] shrink-0 ${
+                isStaleSession
+                  ? 'bg-amber-500/10 text-amber-300/80 border-amber-500/20'
+                  : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${isStaleSession ? 'bg-amber-400/50' : 'bg-amber-400'}`}></span>
+              <span>Line {currentExecutionLine}</span>
+              {isStaleSession && <span className="text-[9px] text-amber-400/70 hidden lg:inline">(frozen)</span>}
             </span>
           )}
           {assemblyErrors.length > 0 && (
-            <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium">
-              {assemblyErrors.length} error{assemblyErrors.length > 1 ? 's' : ''}
+            <span className="px-1.5 sm:px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium shrink-0">
+              {assemblyErrors.length} err{assemblyErrors.length > 1 ? 's' : ''}
             </span>
           )}
         </div>

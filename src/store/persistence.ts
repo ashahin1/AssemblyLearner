@@ -22,6 +22,24 @@ export class PersistenceManager {
   }
 
   /**
+   * Clears all saved studio state and preferences from localStorage for a clean slate
+   */
+  static clearAll(): void {
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('coe224_')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // In case localStorage is disabled or restricted
+    }
+  }
+
+  /**
    * Compresses MASM code into a URL-safe Base64 string for sharing with the professor
    */
   static encodeCodeToUrl(code: string): string {

@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import { useUIStore, RegisterDisplayFormat } from '../store/uiStore';
-import { X, Settings, Moon, Sun, Tv, RotateCcw, AlertTriangle } from 'lucide-react';
+import { X, Settings, Moon, Sun, Tv, RotateCcw, AlertTriangle, BookOpen } from 'lucide-react';
 import { PersistenceManager } from '../store/persistence';
 
 export const SettingsModal: React.FC = () => {
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const isSettingsOpen = useUIStore((s) => s.isSettingsOpen);
   const setIsSettingsOpen = useUIStore((s) => s.setIsSettingsOpen);
+  const setIsHandbookOpen = useUIStore((s) => s.setIsHandbookOpen);
   const theme = useUIStore((s) => s.theme);
   const toggleTheme = useUIStore((s) => s.toggleTheme);
   const executionSpeedMs = useUIStore((s) => s.executionSpeedMs);
@@ -180,6 +181,28 @@ export const SettingsModal: React.FC = () => {
             >
               {theme === 'dark' ? <Moon size={14} className="text-sky-400" /> : <Sun size={14} className="text-amber-400" />}
               <span className="capitalize">{theme} Mode</span>
+            </button>
+          </div>
+
+          {/* Student Handbook Shortcut */}
+          <div className="p-3.5 rounded-lg bg-sky-950/40 border border-sky-500/30 flex items-center justify-between">
+            <div className="space-y-0.5 min-w-0 pr-3">
+              <div className="flex items-center gap-1.5 font-bold text-sky-400">
+                <BookOpen size={15} />
+                <span>Student Handbook &amp; Guide</span>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Complete guide to IDE panels, CPU registers, flags, MASM syntax, and debugging techniques.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setIsSettingsOpen(false);
+                setIsHandbookOpen(true);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs transition shrink-0 shadow-sm"
+            >
+              Open Guide
             </button>
           </div>
 

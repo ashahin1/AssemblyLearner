@@ -42,6 +42,7 @@ interface UIStoreState {
   uiScale: number;
   expandedRegisters: Set<string>;
   isSettingsOpen: boolean;
+  isHandbookOpen: boolean;
 
   setTheme: (theme: 'dark' | 'light') => void;
   toggleTheme: () => void;
@@ -55,6 +56,7 @@ interface UIStoreState {
   toggleTvMode: () => void;
   toggleRegisterExpansion: (reg: string) => void;
   setIsSettingsOpen: (open: boolean) => void;
+  setIsHandbookOpen: (open: boolean) => void;
 }
 
 export const useUIStore = create<UIStoreState>((set, get) => ({
@@ -65,6 +67,7 @@ export const useUIStore = create<UIStoreState>((set, get) => ({
   uiScale: getInitialUiScale(),
   expandedRegisters: new Set(['eax']),
   isSettingsOpen: false,
+  isHandbookOpen: false,
 
   setTheme: (theme) => {
     set({ theme });
@@ -141,4 +144,5 @@ export const useUIStore = create<UIStoreState>((set, get) => ({
   },
 
   setIsSettingsOpen: (isSettingsOpen) => set({ isSettingsOpen }),
+  setIsHandbookOpen: (isHandbookOpen) => set({ isHandbookOpen }),
 }));

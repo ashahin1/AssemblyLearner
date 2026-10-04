@@ -14,6 +14,7 @@ import {
   Settings,
   BookOpen,
   Check,
+  HelpCircle,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -36,6 +37,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
   const totalStepsRecorded = useCPUStore((s) => s.totalStepsRecorded);
   const executionSpeedMs = useUIStore((s) => s.executionSpeedMs);
   const setIsSettingsOpen = useUIStore((s) => s.setIsSettingsOpen);
+  const setIsHandbookOpen = useUIStore((s) => s.setIsHandbookOpen);
 
   const [copiedShare, setCopiedShare] = useState(false);
 
@@ -177,6 +179,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
         >
           {copiedShare ? <Check size={14} className="text-emerald-400" /> : <Share2 size={14} />}
           <span className="hidden sm:inline">{copiedShare ? 'Copied Link!' : 'Share'}</span>
+        </button>
+
+        <button
+          onClick={() => setIsHandbookOpen(true)}
+          title="Student Handbook & IDE Guide"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 transition font-medium"
+        >
+          <HelpCircle size={14} />
+          <span className="hidden sm:inline">Handbook</span>
         </button>
 
         <button

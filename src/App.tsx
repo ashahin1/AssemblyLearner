@@ -11,8 +11,9 @@ import { Ch4Page } from './modules/ch4/Ch4Page';
 import { Ch5Page } from './modules/ch5/Ch5Page';
 import { Ch6Page } from './modules/ch6/Ch6Page';
 import { Ch7Page } from './modules/ch7/Ch7Page';
+import { HandbookModal } from './playground/HandbookModal';
 import { useUIStore } from './store/uiStore';
-import { Cpu, Terminal, BookOpen, Sun, Moon, Tv, Maximize, Minimize, Plus, Minus } from 'lucide-react';
+import { Cpu, Terminal, BookOpen, Sun, Moon, Tv, Maximize, Minimize, Plus, Minus, HelpCircle } from 'lucide-react';
 
 const NavigationHeader: React.FC = () => {
   const location = useLocation();
@@ -23,6 +24,7 @@ const NavigationHeader: React.FC = () => {
   const zoomOut = useUIStore((s) => s.zoomOut);
   const resetZoom = useUIStore((s) => s.resetZoom);
   const toggleTvMode = useUIStore((s) => s.toggleTvMode);
+  const setIsHandbookOpen = useUIStore((s) => s.setIsHandbookOpen);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
 
   React.useEffect(() => {
@@ -86,6 +88,16 @@ const NavigationHeader: React.FC = () => {
           <span className="hidden md:inline">Lecture Modules (Ch 1–7)</span>
           <span className="md:hidden">Modules</span>
         </Link>
+
+        <button
+          onClick={() => setIsHandbookOpen(true)}
+          title="Student Handbook & IDE Documentation"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition"
+        >
+          <HelpCircle size={14} className="text-sky-400" />
+          <span className="hidden md:inline">Handbook</span>
+          <span className="md:hidden">Guide</span>
+        </button>
       </nav>
 
       {/* Right Controls: Classroom TV, Zoom, Fullscreen & Theme */}
@@ -206,6 +218,7 @@ export const App: React.FC = () => {
             <Route path="*" element={<Navigate to="/playground" replace />} />
           </Routes>
         </main>
+        <HandbookModal />
       </div>
     </HashRouter>
   );

@@ -10,6 +10,12 @@
   }
 }
 
+/* Root app frame: fill the *visible* viewport (excludes mobile browser toolbars) */
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+}
+
 /* Custom scrollbars for IDE panels (Dark Mode default) */
 ::-webkit-scrollbar {
   width: 6px;

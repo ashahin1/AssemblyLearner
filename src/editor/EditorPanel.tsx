@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { EditorState, Compartment } from '@codemirror/state';
-import { EditorView, lineNumbers, hoverTooltip } from '@codemirror/view';
+import { EditorState, Compartment, StateEffect, StateField, RangeSet } from '@codemirror/state';
+import { EditorView, lineNumbers, hoverTooltip, gutter, GutterMarker, Decoration, type DecorationSet } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
 import { masmLanguage } from './masmLanguage';
@@ -10,6 +10,78 @@ import { tags } from '@lezer/highlight';
 import { useCPUStore } from '../store/cpuStore';
 import { useUIStore } from '../store/uiStore';
 import { PersistenceManager } from '../store/persistence';
+
+export const setExecutionLineEffect = StateEffect.define<number | null>();
+
+class ExecutionGutterMarker extends GutterMarker {
+  toDOM() {
+    const span = document.createElement('span');
+    span.className = 'cm-execution-gutter-marker';
+    span.textContent = '▶';
+    return span;
+  }
+}
+
+const executionGutterMarkerInstance = new ExecutionGutterMarker();
+
+const executionGutterField = StateField.define<RangeSet<GutterMarker>>({
+  create() {
+    return RangeSet.empty;
+  },
+  update(markers, tr) {
+    markers = markers.map(tr.changes);
+    for (const effect of tr.effects) {
+      if (effect.is(setExecutionLineEffect)) {
+        const lineNum = effect.value;
+        if (!lineNum || lineNum <= 0 || lineNum > tr.state.doc.lines) {
+          return RangeSet.empty;
+        }
+        try {
+          const line = tr.state.doc.line(lineNum);
+          return RangeSet.of([executionGutterMarkerInstance.range(line.from)]);
+        } catch {
+          return RangeSet.empty;
+        }
+      }
+    }
+    return markers;
+  },
+});
+
+const executionGutter = gutter({
+  class: 'cm-execution-gutter',
+  markers: (view) => view.state.field(executionGutterField),
+  initialSpacer: () => executionGutterMarkerInstance,
+});
+
+const executionLineField = StateField.define<DecorationSet>({
+  create() {
+    return Decoration.none;
+  },
+  update(decorations, tr) {
+    decorations = decorations.map(tr.changes);
+    for (const effect of tr.effects) {
+      if (effect.is(setExecutionLineEffect)) {
+        const lineNum = effect.value;
+        if (!lineNum || lineNum <= 0 || lineNum > tr.state.doc.lines) {
+          return Decoration.none;
+        }
+        try {
+          const line = tr.state.doc.line(lineNum);
+          return Decoration.set([
+            Decoration.line({
+              class: 'cm-execution-line',
+            }).range(line.from),
+          ]);
+        } catch {
+          return Decoration.none;
+        }
+      }
+    }
+    return decorations;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
 
 const masmHighlightStyle = HighlightStyle.define([
   { tag: tags.keyword, class: 'cm-keyword' },
@@ -117,6 +189,29 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
     '.cm-activeLine': {
       backgroundColor: '#131d31',
     },
+    // Debug Execution Line & Gutter Arrow
+    '.cm-execution-line': {
+      backgroundColor: 'rgba(234, 179, 8, 0.20) !important',
+      borderLeft: '3px solid #f59e0b !important',
+    },
+    '.cm-execution-gutter': {
+      width: '18px',
+      backgroundColor: '#070a12',
+    },
+    '.cm-execution-gutter .cm-gutterElement': {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '0 2px',
+      cursor: 'default',
+    },
+    '.cm-execution-gutter-marker': {
+      color: '#f59e0b',
+      fontSize: '11px',
+      lineHeight: '1',
+      fontWeight: 'bold',
+      filter: 'drop-shadow(0 0 4px rgba(245, 158, 11, 0.6))',
+    },
     // Syntax Token Colors
     '.cm-keyword': { color: '#38bdf8', fontWeight: 'bold' },
     '.cm-atom': { color: '#2dd4bf', fontWeight: '600' }, // Registers
@@ -133,6 +228,9 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
     const startState = EditorState.create({
       doc: activeCode,
       extensions: [
+        executionGutterField,
+        executionGutter,
+        executionLineField,
         lineNumbers(),
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap]),
@@ -166,6 +264,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
     });
 
     viewRef.current = view;
+
+    if (currentExecutionLine) {
+      view.dispatch({
+        effects: setExecutionLineEffect.of(currentExecutionLine),
+      });
+    }
 
     return () => {
       view.destroy();
@@ -202,6 +306,25 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
       viewRef.current.requestMeasure();
     }
   }, [fontSize]);
+
+  // Update execution line highlight and auto-scroll when debugging
+  useEffect(() => {
+    if (!viewRef.current) return;
+    const view = viewRef.current;
+
+    view.dispatch({
+      effects: setExecutionLineEffect.of(currentExecutionLine),
+    });
+
+    if (currentExecutionLine && currentExecutionLine > 0 && currentExecutionLine <= view.state.doc.lines) {
+      try {
+        const line = view.state.doc.line(currentExecutionLine);
+        view.dispatch({
+          effects: EditorView.scrollIntoView(line.from, { y: 'center' }),
+        });
+      } catch {}
+    }
+  }, [currentExecutionLine]);
 
   return (
     <div className="relative h-full flex flex-col bg-slate-950 border border-slate-800 rounded-lg overflow-hidden shadow-xl">

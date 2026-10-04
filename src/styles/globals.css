@@ -231,3 +231,17 @@ html:not(.dark) .cm-typeName {
 html:not(.dark) .cm-variable-2 {
   color: #b45309 !important;
 }
+
+/* Light Mode Debug Execution Line & Gutter Arrow */
+html:not(.dark) .cm-execution-line {
+  background-color: rgba(245, 158, 11, 0.22) !important;
+  border-left: 3px solid #d97706 !important;
+}
+
+html:not(.dark) .cm-execution-gutter {
+  background-color: #f8fafc !important;
+}
+
+html:not(.dark) .cm-execution-gutter-marker {
+  color: #d97706 !important;
+}

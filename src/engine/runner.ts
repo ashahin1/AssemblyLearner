@@ -103,9 +103,10 @@ export class ProgramRunner {
           this.cpu.setRegister('eip', eip + 1);
           this.totalSteps++;
 
+          const nextInstr = this.instructions[this.cpu.getRegisters().eip];
           yield {
             type: 'STEP_COMPLETE',
-            line: instr.sourceLine,
+            line: nextInstr?.sourceLine ?? instr.sourceLine,
             flagDiagnostics: [],
           };
           continue;
@@ -116,9 +117,10 @@ export class ProgramRunner {
           this.cpu.setRegister('eip', eip + 1);
           this.totalSteps++;
 
+          const nextInstr = this.instructions[this.cpu.getRegisters().eip];
           yield {
             type: 'STEP_COMPLETE',
-            line: instr.sourceLine,
+            line: nextInstr?.sourceLine ?? instr.sourceLine,
             flagDiagnostics: [],
           };
           continue;
@@ -150,9 +152,10 @@ export class ProgramRunner {
 
         this.totalSteps++;
 
+        const nextInstr = this.instructions[this.cpu.getRegisters().eip];
         yield {
           type: 'STEP_COMPLETE',
-          line: instr.sourceLine,
+          line: nextInstr?.sourceLine ?? instr.sourceLine,
           flagDiagnostics: result.flagDiagnostics,
         };
       } catch (err: any) {

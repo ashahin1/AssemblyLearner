@@ -148,6 +148,24 @@ html:not(.dark) .text-slate-500 {
   color: #64748b !important;
 }
 
+/* Solid colored action buttons and badges maintain crisp white text in Light Mode */
+html:not(.dark) .bg-sky-600,
+html:not(.dark) .bg-sky-600 *,
+html:not(.dark) .bg-sky-500,
+html:not(.dark) .bg-sky-500 *,
+html:not(.dark) .bg-emerald-600,
+html:not(.dark) .bg-emerald-600 *,
+html:not(.dark) .bg-emerald-500,
+html:not(.dark) .bg-emerald-500 *,
+html:not(.dark) .bg-rose-600,
+html:not(.dark) .bg-rose-600 *,
+html:not(.dark) .bg-amber-600,
+html:not(.dark) .bg-amber-600 *,
+html:not(.dark) .bg-teal-600,
+html:not(.dark) .bg-teal-600 * {
+  color: #ffffff !important;
+}
+
 /* Hover States in Light Mode */
 html:not(.dark) .hover\:bg-slate-800:hover {
   background-color: #e2e8f0 !important;

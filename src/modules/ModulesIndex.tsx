@@ -60,15 +60,15 @@ export const ModulesIndex: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8 text-slate-100">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-sky-950/60 via-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-sky-100/80 via-white to-slate-100/90 dark:from-sky-950/60 dark:via-slate-900 dark:to-slate-950 border border-sky-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl dark:shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-100 border border-sky-200 text-sky-700 dark:bg-sky-500/10 dark:border-sky-500/20 dark:text-sky-400 text-xs font-semibold">
             <span>COE224 • Buraydah Private Colleges</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Curriculum Interactive Learning Modules
           </h1>
-          <p className="text-slate-400 text-sm max-w-2xl leading-relaxed">
+          <p className="text-slate-600 dark:text-slate-400 text-sm max-w-2xl leading-relaxed">
             Synchronized directly with Chapters 1 through 7 of Kip R. Irvine’s <em>Assembly Language for x86 Processors</em>. Explore concepts with dedicated interactive sandboxes or jump straight into the full IDE.
           </p>
         </div>

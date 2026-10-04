@@ -39,8 +39,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
 
   const [copiedShare, setCopiedShare] = useState(false);
 
+  const isStaleSession = isCodeDirty && totalStepsRecorded > 0;
+  const isRestartNeeded = !isAssembled || isHalted || isCodeDirty;
+
   const handleRun = async () => {
-    if (!isAssembled || isHalted || isCodeDirty) {
+    if (isRestartNeeded) {
       reset();
       const ok = assembleCode(currentCode);
       if (!ok) return;
@@ -49,10 +52,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
   };
 
   const handleStep = async () => {
-    if (!isAssembled || isHalted || isCodeDirty) {
+    if (isRestartNeeded) {
       reset();
       const ok = assembleCode(currentCode);
       if (!ok) return;
+      return; // 2-Step Flow: Park at entry point (Line 1). User clicks Step again to execute Line 1.
     }
     stepForward();
   };
@@ -69,8 +73,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
     setTimeout(() => setCopiedShare(false), 2500);
   };
 
-  const isStaleSession = isCodeDirty && totalStepsRecorded > 0;
-
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 px-2 sm:px-4 py-2 bg-slate-900 border-b border-slate-800 text-xs shadow-md shrink-0">
       {/* Execution Controls */}
@@ -78,12 +80,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
         {!isRunning ? (
           <button
             onClick={handleRun}
-            title={isStaleSession ? "Restart & Run (Code was modified)" : "Run continuously"}
+            title={
+              isCodeDirty
+                ? "Restart & Run (Code was modified)"
+                : isHalted
+                ? "Restart & Run from the beginning"
+                : "Run continuously"
+            }
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition shadow-sm"
           >
             <Play size={14} fill="currentColor" />
-            <span className="hidden sm:inline">{isStaleSession ? 'Restart & Run' : 'Run'}</span>
-            <span className="sm:hidden">{isStaleSession ? 'Restart' : 'Run'}</span>
+            <span className="hidden sm:inline">{isRestartNeeded ? 'Restart & Run' : 'Run'}</span>
+            <span className="sm:hidden">{isRestartNeeded ? 'Restart' : 'Run'}</span>
           </button>
         ) : (
           <button
@@ -98,23 +106,34 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
         <button
           onClick={handleStep}
           disabled={isRunning}
-          title={isStaleSession ? "Restart & Step (Code was modified)" : "Step Forward (Single instruction)"}
+          title={
+            isCodeDirty
+              ? "Code modified. Click to reload at Line 1"
+              : isHalted
+              ? "Program finished. Click to restart at Line 1"
+              : "Step Forward (Single instruction)"
+          }
           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md border transition ${
-            isStaleSession
+            isCodeDirty
               ? 'bg-amber-600/30 hover:bg-amber-600/40 text-amber-200 border-amber-500/50'
+              : isHalted
+              ? 'bg-sky-600/20 hover:bg-sky-600/30 text-sky-200 border-sky-500/40'
               : 'bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border-slate-700'
           }`}
         >
-          <StepForward size={14} />
-          <span className="hidden sm:inline">{isStaleSession ? 'Restart & Step' : 'Step'}</span>
+          {isRestartNeeded ? <RotateCcw size={14} /> : <StepForward size={14} />}
+          <span className="hidden sm:inline">{isRestartNeeded ? 'Restart' : 'Step'}</span>
+          <span className="sm:hidden">{isRestartNeeded ? 'Restart' : 'Step'}</span>
         </button>
 
         <button
           onClick={stepBackward}
-          disabled={isRunning || isStaleSession}
+          disabled={isRunning || isStaleSession || totalStepsRecorded === 0}
           title={
             isStaleSession
-              ? "Cannot step backward after modifying code. Click Step or Run to restart."
+              ? "Cannot step backward after modifying code. Click Restart to reload."
+              : totalStepsRecorded === 0
+              ? "Cannot step backward (at beginning of program)"
               : "Step Backward (Undo)"
           }
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border border-slate-700 transition"

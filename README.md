@@ -80,15 +80,24 @@ Smart educational TVs in classrooms can run the studio completely offline withou
 
 ## 🎓 Blackboard LMS Integration
 
-Instructors can distribute the studio directly to students via Blackboard Learn or Blackboard Ultra:
+### Method 1: Web Link (Recommended & Verified)
+> [!NOTE]
+> Blackboard security filters frequently restrict or block direct uploads of standalone `.html` files containing bundled client-side JavaScript, flagging them as potential script risks. Providing a direct **Web Link** to the GitHub Pages deployment resolves this and ensures seamless access for students.
 
-1. Navigate to your course Content Area (e.g., **Course Documents** or **Lab Resources**).
-2. Click **Build Content** $\to$ **File** (or in Blackboard Ultra: **$+$** $\to$ **Upload Local File**).
-3. Select and upload [`COE224-Assembly-Studio.html`](./COE224-Assembly-Studio.html).
-4. Set **Open in New Window** to **Yes**.
-5. Add student instructions:
-   > *"Click to open or download. This studio runs 100% in your browser (Chrome/Edge/Firefox) with zero installation required. You can also save the file to your laptop or USB drive to practice offline."*
-6. When students click the link, their browser either launches the studio directly or downloads the single-file app to their computer for permanent offline access.
+1. Navigate to your course Content Area (e.g., **Course Documents**, **Lecture Materials**, or **Lab Resources**).
+2. Add a Web Link:
+   - **Blackboard Learn (Original):** Click **Build Content** $\to$ **Web Link**.
+   - **Blackboard Ultra:** Click the **$+$** icon $\to$ **Create** $\to$ **Link**.
+3. Configure the link parameters:
+   - **Name:** `COE224: Assembly Language Studio & IA-32 Simulator`
+   - **URL:** `https://ashahin1.github.io/AssemblyLearner/`
+   - **Open in New Window:** `Yes`
+4. Suggested student description:
+   > *"Click to launch the interactive Assembly Studio directly in your web browser. Runs 100% client-side on laptops, tablets, and smartphones with zero installation needed."*
+
+### Method 2: Offline Distribution via ZIP Archive (Optional)
+If you wish to provide students with an offline file directly through Blackboard:
+- Upload [`COE224-Assembly-Studio.zip`](./COE224-Assembly-Studio.zip) as a content file. Blackboard's file scanner allows `.zip` attachments without flagging. Students simply download the archive, extract it, and open `COE224-Assembly-Studio.html` offline.
 
 ---
 

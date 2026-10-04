@@ -2,7 +2,9 @@
 
 **Interactive Learning Environment & IA-32 Simulator**  
 *Buraydah Private Colleges, Faculty of Engineering and Information Technology*  
-*Curriculum Text:* **Assembly Language for x86 Processors (7th Edition)** by Kip R. Irvine (Chapters 1–7)
+*Curriculum Text:* **Assembly Language for x86 Processors (7th Edition)** by Kip R. Irvine (Chapters 1–7)  
+
+🔗 **Live Web Application:** [https://ashahin1.github.io/AssemblyLearner/](https://ashahin1.github.io/AssemblyLearner/)
 
 ---
 
@@ -90,28 +92,22 @@ Instructors can distribute the studio directly to students via Blackboard Learn 
 
 ---
 
-## 🌐 GitHub Pages Deployment (Zero-Click CI/CD)
+## 🌐 Live Access & GitHub Pages Deployment
 
-The repository is pre-configured for free instant hosting on GitHub Pages:
+The live web application is accessible globally at:  
+👉 **[https://ashahin1.github.io/AssemblyLearner/](https://ashahin1.github.io/AssemblyLearner/)**
 
-### Method A: Automated GitHub Actions (Recommended)
+The repository is pre-configured for continuous hosting and automated deployment:
+
+### Method A: Automated GitHub Actions (Active)
 The repository includes [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml):
-1. Push your code to GitHub:
-   ```bash
-   git remote add origin https://github.com/<YOUR-USERNAME>/<YOUR-REPO-NAME>.git
-   git branch -M main
-   git push -u origin main
-   ```
-2. In your GitHub repository, go to **Settings** $\to$ **Pages**.
-3. Under **Build and deployment $\to$ Source**, choose **GitHub Actions**.
-4. GitHub Actions will automatically run all 22 tests, compile the bundle, and publish the live URL:
-   $$\text{https://<YOUR-USERNAME>.github.io/<YOUR-REPO-NAME>/}$$
+1. Whenever commits are pushed to `main`, GitHub Actions automatically runs all 22 tests, compiles the production bundle, and deploys directly to:
+   **[https://ashahin1.github.io/AssemblyLearner/](https://ashahin1.github.io/AssemblyLearner/)**
+2. In the repository settings (**Settings** $\to$ **Pages**), **Build and deployment $\to$ Source** is set to **GitHub Actions**.
 
-### Method B: Deploy from `/docs` Folder
-The repository also includes a pre-built [`docs/index.html`](./docs/index.html):
-1. In your GitHub repository, go to **Settings** $\to$ **Pages**.
-2. Under **Build and deployment $\to$ Source**, choose **Deploy from a branch**.
-3. Select branch **`main`** and folder **`/docs`**, then click **Save**.
+### Method B: Deploy from `/docs` Folder (Alternative / Mirror)
+The repository also includes the synchronized standalone [`docs/index.html`](./docs/index.html):
+- Can be served directly by selecting branch **`main`** and folder **`/docs`** in GitHub Pages settings.
 
 ---
 

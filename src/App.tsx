@@ -45,15 +45,15 @@ const NavigationHeader: React.FC = () => {
   const isChapters = location.pathname.startsWith('/chapters');
 
   return (
-    <header className="h-[53px] bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between shadow-md shrink-0">
+    <header className="h-[53px] bg-slate-900 border-b border-slate-800 px-2 sm:px-4 gap-2 flex items-center justify-between shadow-md shrink-0">
       {/* Brand */}
-      <Link to="/playground" className="flex items-center gap-2.5 text-white font-extrabold text-sm tracking-tight group">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-sky-600/30 group-hover:scale-105 transition">
+      <Link to="/playground" className="flex items-center gap-2.5 text-white font-extrabold text-sm tracking-tight group min-w-0">
+        <div className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-tr from-sky-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-sky-600/30 group-hover:scale-105 transition">
           <Cpu size={18} />
         </div>
-        <div className="flex flex-col">
+        <div className="hidden sm:flex flex-col">
           <span className="leading-none text-sky-400 font-bold">COE224: Assembly Studio</span>
-          <span className="text-[10px] text-slate-400 font-normal">Buraydah Private Colleges • x86 IA-32</span>
+          <span className="hidden md:inline text-[10px] text-slate-400 font-normal">Buraydah Private Colleges • x86 IA-32</span>
         </div>
       </Link>
 
@@ -61,6 +61,7 @@ const NavigationHeader: React.FC = () => {
       <nav className="flex items-center gap-1 text-xs">
         <Link
           to="/playground"
+          title="IDE & Simulator"
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition ${
             isPlayground
               ? 'bg-sky-600 text-white shadow-sm'
@@ -68,11 +69,13 @@ const NavigationHeader: React.FC = () => {
           }`}
         >
           <Terminal size={14} />
-          <span>IDE & Simulator</span>
+          <span className="hidden md:inline">IDE &amp; Simulator</span>
+          <span className="md:hidden">IDE</span>
         </Link>
 
         <Link
           to="/chapters"
+          title="Lecture Modules (Ch 1–7)"
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold transition ${
             isChapters
               ? 'bg-sky-600 text-white shadow-sm'
@@ -80,12 +83,15 @@ const NavigationHeader: React.FC = () => {
           }`}
         >
           <BookOpen size={14} />
-          <span>Lecture Modules (Ch 1–7)</span>
+          <span className="hidden md:inline">Lecture Modules (Ch 1–7)</span>
+          <span className="md:hidden">Modules</span>
         </Link>
       </nav>
 
       {/* Right Controls: Classroom TV, Zoom, Fullscreen & Theme */}
       <div className="flex items-center gap-2">
+        {/* Classroom presentation controls (hidden on phones) */}
+        <div className="hidden md:flex items-center gap-2">
         {/* Classroom TV Mode Toggle Button */}
         <button
           onClick={toggleTvMode}
@@ -140,6 +146,7 @@ const NavigationHeader: React.FC = () => {
         >
           {isFullscreen ? <Minimize size={15} className="text-emerald-400" /> : <Maximize size={15} />}
         </button>
+        </div>
 
         {/* Theme Toggle */}
         <button
@@ -182,7 +189,7 @@ export const App: React.FC = () => {
   return (
     <HashRouter>
       <ScrollToTop />
-      <div className="h-screen bg-slate-950 text-slate-100 flex flex-col font-sans overflow-hidden">
+      <div className="app-shell bg-slate-950 text-slate-100 flex flex-col font-sans overflow-hidden">
         <NavigationHeader />
         <main id="main-content" className="flex-1 min-h-0 flex flex-col overflow-hidden">
           <Routes>

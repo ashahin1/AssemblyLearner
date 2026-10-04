@@ -66,7 +66,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-slate-900 border-b border-slate-800 text-xs shadow-md">
+    <div className="flex flex-wrap items-center justify-between gap-2 px-2 sm:px-4 py-2 bg-slate-900 border-b border-slate-800 text-xs shadow-md shrink-0">
       {/* Execution Controls */}
       <div className="flex items-center gap-1.5">
         {!isRunning ? (
@@ -94,7 +94,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border border-slate-700 transition"
         >
           <StepForward size={14} />
-          <span>Step</span>
+          <span className="hidden sm:inline">Step</span>
         </button>
 
         <button
@@ -104,7 +104,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border border-slate-700 transition"
         >
           <StepBack size={14} />
-          <span>Back</span>
+          <span className="hidden sm:inline">Back</span>
         </button>
 
         <button
@@ -113,7 +113,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
         >
           <RotateCcw size={14} />
-          <span>Reset</span>
+          <span className="hidden sm:inline">Reset</span>
         </button>
       </div>
 
@@ -121,15 +121,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
       <div className="flex items-center gap-2">
         <button
           onClick={onOpenExamples}
+          title="Lecture Examples"
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 transition font-medium"
         >
           <BookOpen size={14} />
-          <span>Lecture Examples</span>
+          <span className="hidden sm:inline">Lecture Examples</span>
         </button>
 
         <Link
           to="/chapters"
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 transition font-medium"
+          className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 transition font-medium"
         >
           <span>Interactive Modules (Ch 1-7)</span>
         </Link>
@@ -140,7 +141,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition font-medium"
         >
           {copiedShare ? <Check size={14} className="text-emerald-400" /> : <Share2 size={14} />}
-          <span>{copiedShare ? 'Copied Link!' : 'Share'}</span>
+          <span className="hidden sm:inline">{copiedShare ? 'Copied Link!' : 'Share'}</span>
         </button>
 
         <button

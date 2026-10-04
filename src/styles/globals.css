@@ -256,6 +256,12 @@ html:not(.dark) .cm-execution-line {
   border-left: 3px solid #d97706 !important;
 }
 
+html:not(.dark) .cm-execution-line-stale {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+  border-left: 3px dashed #d97706 !important;
+  opacity: 0.65;
+}
+
 html:not(.dark) .cm-execution-gutter {
   background-color: #f8fafc !important;
 }
@@ -263,3 +269,10 @@ html:not(.dark) .cm-execution-gutter {
 html:not(.dark) .cm-execution-gutter-marker {
   color: #d97706 !important;
 }
+
+html:not(.dark) .cm-execution-gutter-marker-stale {
+  color: #b45309 !important;
+  opacity: 0.5;
+  filter: none;
+}
+

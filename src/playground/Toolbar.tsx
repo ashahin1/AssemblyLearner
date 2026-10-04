@@ -32,13 +32,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
   const isRunning = useCPUStore((s) => s.isRunning);
   const isAssembled = useCPUStore((s) => s.isAssembled);
   const isHalted = useCPUStore((s) => s.isHalted);
+  const isCodeDirty = useCPUStore((s) => s.isCodeDirty);
+  const totalStepsRecorded = useCPUStore((s) => s.totalStepsRecorded);
   const executionSpeedMs = useUIStore((s) => s.executionSpeedMs);
   const setIsSettingsOpen = useUIStore((s) => s.setIsSettingsOpen);
 
   const [copiedShare, setCopiedShare] = useState(false);
 
   const handleRun = async () => {
-    if (!isAssembled || isHalted) {
+    if (!isAssembled || isHalted || isCodeDirty) {
+      reset();
       const ok = assembleCode(currentCode);
       if (!ok) return;
     }
@@ -46,7 +49,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
   };
 
   const handleStep = async () => {
-    if (!isAssembled || isHalted) {
+    if (!isAssembled || isHalted || isCodeDirty) {
+      reset();
       const ok = assembleCode(currentCode);
       if (!ok) return;
     }
@@ -65,6 +69,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
     setTimeout(() => setCopiedShare(false), 2500);
   };
 
+  const isStaleSession = isCodeDirty && totalStepsRecorded > 0;
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 px-2 sm:px-4 py-2 bg-slate-900 border-b border-slate-800 text-xs shadow-md shrink-0">
       {/* Execution Controls */}
@@ -72,10 +78,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
         {!isRunning ? (
           <button
             onClick={handleRun}
+            title={isStaleSession ? "Restart & Run (Code was modified)" : "Run continuously"}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition shadow-sm"
           >
             <Play size={14} fill="currentColor" />
-            <span>Run</span>
+            <span className="hidden sm:inline">{isStaleSession ? 'Restart & Run' : 'Run'}</span>
+            <span className="sm:hidden">{isStaleSession ? 'Restart' : 'Run'}</span>
           </button>
         ) : (
           <button
@@ -90,17 +98,25 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
         <button
           onClick={handleStep}
           disabled={isRunning}
-          title="Step Forward (Single instruction)"
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border border-slate-700 transition"
+          title={isStaleSession ? "Restart & Step (Code was modified)" : "Step Forward (Single instruction)"}
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md border transition ${
+            isStaleSession
+              ? 'bg-amber-600/30 hover:bg-amber-600/40 text-amber-200 border-amber-500/50'
+              : 'bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border-slate-700'
+          }`}
         >
           <StepForward size={14} />
-          <span className="hidden sm:inline">Step</span>
+          <span className="hidden sm:inline">{isStaleSession ? 'Restart & Step' : 'Step'}</span>
         </button>
 
         <button
           onClick={stepBackward}
-          disabled={isRunning}
-          title="Step Backward (Undo)"
+          disabled={isRunning || isStaleSession}
+          title={
+            isStaleSession
+              ? "Cannot step backward after modifying code. Click Step or Run to restart."
+              : "Step Backward (Undo)"
+          }
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border border-slate-700 transition"
         >
           <StepBack size={14} />

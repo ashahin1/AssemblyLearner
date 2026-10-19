@@ -18,6 +18,57 @@ export type ExecutionLinePayload =
   | { line: number | null; isStale?: boolean };
 
 export const setExecutionLineEffect = StateEffect.define<ExecutionLinePayload>();
+export const setBreakpointsEffect = StateEffect.define<Set<number>>();
+
+class BreakpointGutterMarker extends GutterMarker {
+  toDOM() {
+    const span = document.createElement('span');
+    span.className = 'cm-breakpoint-gutter-marker';
+    span.textContent = '●';
+    return span;
+  }
+}
+
+const breakpointMarkerInstance = new BreakpointGutterMarker();
+
+const breakpointGutterField = StateField.define<RangeSet<GutterMarker>>({
+  create() {
+    return RangeSet.empty;
+  },
+  update(markers, tr) {
+    markers = markers.map(tr.changes);
+    for (const effect of tr.effects) {
+      if (effect.is(setBreakpointsEffect)) {
+        const bpSet = effect.value;
+        const sortedLines = Array.from(bpSet).sort((a, b) => a - b);
+        const ranges: Array<{ from: number; to: number; value: GutterMarker }> = [];
+        for (const lineNum of sortedLines) {
+          if (lineNum >= 1 && lineNum <= tr.state.doc.lines) {
+            try {
+              const line = tr.state.doc.line(lineNum);
+              ranges.push(breakpointMarkerInstance.range(line.from));
+            } catch {}
+          }
+        }
+        return RangeSet.of(ranges, true);
+      }
+    }
+    return markers;
+  },
+});
+
+const breakpointGutter = gutter({
+  class: 'cm-breakpoint-gutter',
+  markers: (view) => view.state.field(breakpointGutterField),
+  initialSpacer: () => breakpointMarkerInstance,
+  domEventHandlers: {
+    mousedown(view, line) {
+      const lineNum = view.state.doc.lineAt(line.from).number;
+      useCPUStore.getState().toggleBreakpoint(lineNum);
+      return true;
+    },
+  },
+});
 
 function parseExecutionLineEffect(val: ExecutionLinePayload): { lineNum: number | null; isStale: boolean } {
   if (val === null || val === undefined) {
@@ -129,14 +180,15 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
   const [activeCode, setActiveCode] = useState(initialCode);
 
   const currentExecutionLine = useCPUStore((s) => s.currentExecutionLine);
+  const breakpoints = useCPUStore((s) => s.breakpoints);
   const assemblyErrors = useCPUStore((s) => s.assemblyErrors);
   const isHalted = useCPUStore((s) => s.isHalted);
   const isCodeDirty = useCPUStore((s) => s.isCodeDirty);
-  const totalStepsRecorded = useCPUStore((s) => s.totalStepsRecorded);
+  const currentStepIndex = useCPUStore((s) => s.currentStepIndex);
   const fontSize = useUIStore((s) => s.fontSize);
   const setFontSize = useUIStore((s) => s.setFontSize);
 
-  const isStaleSession = isCodeDirty && totalStepsRecorded > 0;
+  const isStaleSession = isCodeDirty && currentStepIndex > 0;
 
   // Setup CodeMirror Tooltip Extension
   const tooltipExtension = hoverTooltip((view, pos) => {
@@ -217,6 +269,25 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
     '.cm-activeLine': {
       backgroundColor: '#131d31',
     },
+    // Breakpoint Gutter
+    '.cm-breakpoint-gutter': {
+      width: '18px',
+      backgroundColor: '#070a12',
+      cursor: 'pointer',
+    },
+    '.cm-breakpoint-gutter .cm-gutterElement': {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '0',
+      cursor: 'pointer',
+    },
+    '.cm-breakpoint-gutter-marker': {
+      color: '#ef4444',
+      fontSize: '11px',
+      lineHeight: '1',
+      filter: 'drop-shadow(0 0 4px rgba(239, 68, 68, 0.8))',
+    },
     // Debug Execution Line & Gutter Arrow
     '.cm-execution-line': {
       backgroundColor: 'rgba(234, 179, 8, 0.20) !important',
@@ -266,10 +337,20 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
     const startState = EditorState.create({
       doc: activeCode,
       extensions: [
+        breakpointGutterField,
+        breakpointGutter,
         executionGutterField,
         executionGutter,
         executionLineField,
-        lineNumbers(),
+        lineNumbers({
+          domEventHandlers: {
+            mousedown(view, line) {
+              const lineNum = view.state.doc.lineAt(line.from).number;
+              useCPUStore.getState().toggleBreakpoint(lineNum);
+              return true;
+            },
+          },
+        }),
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap]),
         masmLanguage,
@@ -303,6 +384,10 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
     });
 
     viewRef.current = view;
+
+    view.dispatch({
+      effects: setBreakpointsEffect.of(useCPUStore.getState().breakpoints),
+    });
 
     if (currentExecutionLine) {
       view.dispatch({
@@ -370,6 +455,14 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
       } catch {}
     }
   }, [currentExecutionLine, isStaleSession]);
+
+  // Sync breakpoints to editor gutter
+  useEffect(() => {
+    if (!viewRef.current) return;
+    viewRef.current.dispatch({
+      effects: setBreakpointsEffect.of(breakpoints),
+    });
+  }, [breakpoints]);
 
   return (
     <div className="relative h-full flex flex-col bg-slate-950 border border-slate-800 rounded-lg overflow-hidden shadow-xl">
@@ -457,16 +550,25 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({ initialCode, onCodeCha
 
       {/* Assembly Errors Footer if present */}
       {assemblyErrors.length > 0 && (
-        <div className="bg-rose-950/90 border-t border-rose-800 p-2.5 text-xs text-rose-200">
-          <div className="font-semibold text-rose-400 mb-1 flex items-center gap-1.5">
-            <span>⚠ Assembly Error (Line {assemblyErrors[0].line}):</span>
+        <div className="bg-rose-950/95 border-t border-rose-800 p-2.5 text-xs text-rose-200 max-h-48 overflow-y-auto space-y-2">
+          <div className="font-semibold text-rose-400 flex items-center justify-between pb-1 border-b border-rose-900/60 sticky top-0 bg-rose-950/95">
+            <span>⚠ Assembly Errors ({assemblyErrors.length}):</span>
           </div>
-          <div className="font-mono text-rose-300">{assemblyErrors[0].message}</div>
-          {assemblyErrors[0].suggestion && (
-            <div className="text-amber-300 mt-1 italic font-sans">
-              💡 {assemblyErrors[0].suggestion}
+          {assemblyErrors.map((err, idx) => (
+            <div key={idx} className="bg-rose-900/30 p-2 rounded border border-rose-800/40">
+              <div className="font-semibold text-rose-300 flex items-center gap-1.5">
+                <span className="px-1.5 py-0.5 rounded bg-rose-900 text-rose-200 text-[10px]">
+                  Line {err.line}
+                </span>
+                <span className="font-mono text-[11px]">{err.message}</span>
+              </div>
+              {err.suggestion && (
+                <div className="text-amber-300 mt-1 italic text-[11px] font-sans">
+                  💡 {err.suggestion}
+                </div>
+              )}
             </div>
-          )}
+          ))}
         </div>
       )}
     </div>

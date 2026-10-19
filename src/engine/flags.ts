@@ -29,7 +29,10 @@ export class FlagEngine {
     const signBit = size === 1 ? 0x80 : size === 2 ? 0x8000 : 0x80000000;
     const maxVal = mask;
 
-    const rawResult = dest + src;
+    const uDest = (dest & mask) >>> 0;
+    const uSrc = (src & mask) >>> 0;
+
+    const rawResult = uDest + uSrc;
     const result = (rawResult & mask) >>> 0;
 
     const zf: 0 | 1 = result === 0 ? 1 : 0;
@@ -37,13 +40,13 @@ export class FlagEngine {
     const cf: 0 | 1 = rawResult > maxVal ? 1 : 0;
 
     // OF = (dest sign == src sign) && (dest sign != result sign)
-    const destSign = (dest & signBit) !== 0;
-    const srcSign = (src & signBit) !== 0;
+    const destSign = (uDest & signBit) !== 0;
+    const srcSign = (uSrc & signBit) !== 0;
     const resSign = (result & signBit) !== 0;
     const of: 0 | 1 = destSign === srcSign && destSign !== resSign ? 1 : 0;
 
     const pf = this.computePF(result);
-    const af: 0 | 1 = ((dest & 0x0f) + (src & 0x0f) > 0x0f) ? 1 : 0;
+    const af: 0 | 1 = ((uDest & 0x0f) + (uSrc & 0x0f) > 0x0f) ? 1 : 0;
 
     const newFlags: Flags = {
       ...oldFlags,
@@ -56,8 +59,8 @@ export class FlagEngine {
     };
 
     const diagnostics = this.generateDiagnostics('ADD', oldFlags, newFlags, {
-      dest,
-      src,
+      dest: uDest,
+      src: uSrc,
       result,
       size,
     });
@@ -73,26 +76,30 @@ export class FlagEngine {
     src: number,
     size: 1 | 2 | 4,
     oldFlags: Flags,
-    isCmp: boolean = false
+    isCmp: boolean = false,
+    opNameOverride?: string
   ): { flags: Flags; diagnostics: FlagDiagnostic[] } {
     const mask = size === 1 ? 0xff : size === 2 ? 0xffff : 0xffffffff;
     const signBit = size === 1 ? 0x80 : size === 2 ? 0x8000 : 0x80000000;
 
-    const rawResult = dest - src;
+    const uDest = (dest & mask) >>> 0;
+    const uSrc = (src & mask) >>> 0;
+
+    const rawResult = uDest - uSrc;
     const result = (rawResult & mask) >>> 0;
 
     const zf: 0 | 1 = result === 0 ? 1 : 0;
     const sf: 0 | 1 = (result & signBit) !== 0 ? 1 : 0;
-    const cf: 0 | 1 = (dest >>> 0) < (src >>> 0) ? 1 : 0; // unsigned borrow
+    const cf: 0 | 1 = uDest < uSrc ? 1 : 0; // unsigned borrow
 
     // OF = (dest sign != src sign) && (dest sign != result sign)
-    const destSign = (dest & signBit) !== 0;
-    const srcSign = (src & signBit) !== 0;
+    const destSign = (uDest & signBit) !== 0;
+    const srcSign = (uSrc & signBit) !== 0;
     const resSign = (result & signBit) !== 0;
     const of: 0 | 1 = destSign !== srcSign && destSign !== resSign ? 1 : 0;
 
     const pf = this.computePF(result);
-    const af: 0 | 1 = ((dest & 0x0f) < (src & 0x0f)) ? 1 : 0;
+    const af: 0 | 1 = ((uDest & 0x0f) < (uSrc & 0x0f)) ? 1 : 0;
 
     const newFlags: Flags = {
       ...oldFlags,
@@ -104,9 +111,10 @@ export class FlagEngine {
       AF: af,
     };
 
-    const diagnostics = this.generateDiagnostics(isCmp ? 'CMP' : 'SUB', oldFlags, newFlags, {
-      dest,
-      src,
+    const opName = opNameOverride ?? (isCmp ? 'CMP' : 'SUB');
+    const diagnostics = this.generateDiagnostics(opName, oldFlags, newFlags, {
+      dest: uDest,
+      src: uSrc,
       result,
       size,
     });
@@ -126,7 +134,8 @@ export class FlagEngine {
     const mask = size === 1 ? 0xff : size === 2 ? 0xffff : 0xffffffff;
     const signBit = size === 1 ? 0x80 : size === 2 ? 0x8000 : 0x80000000;
 
-    const rawResult = isInc ? dest + 1 : dest - 1;
+    const uDest = (dest & mask) >>> 0;
+    const rawResult = isInc ? uDest + 1 : uDest - 1;
     const result = (rawResult & mask) >>> 0;
 
     const zf: 0 | 1 = result === 0 ? 1 : 0;
@@ -137,9 +146,9 @@ export class FlagEngine {
     let of: 0 | 1 = 0;
     if (isInc) {
       const maxSigned = signBit - 1;
-      of = dest === maxSigned ? 1 : 0;
+      of = uDest === maxSigned ? 1 : 0;
     } else {
-      of = dest === signBit ? 1 : 0;
+      of = uDest === signBit ? 1 : 0;
     }
 
     const pf = this.computePF(result);
@@ -154,7 +163,7 @@ export class FlagEngine {
     };
 
     const diagnostics = this.generateDiagnostics(isInc ? 'INC' : 'DEC', oldFlags, newFlags, {
-      dest,
+      dest: uDest,
       src: 1,
       result,
       size,

@@ -98,7 +98,7 @@ export class ShiftInstructions {
     cpu.setState({ ...cpu.getState(), flags: newFlags });
     DataTransferInstructions.setOperandValue(dest, result, cpu, memory);
 
-    return [
+    const diagnostics: FlagDiagnostic[] = [
       {
         flag: 'CF',
         oldValue: oldFlags.CF,
@@ -106,5 +106,34 @@ export class ShiftInstructions {
         reason: `CF=${cf}: Last bit shifted out of operand was ${cf}.`,
       },
     ];
+
+    if (count === 1) {
+      diagnostics.push({
+        flag: 'OF',
+        oldValue: oldFlags.OF,
+        newValue: of,
+        reason: `OF=${of}: Overflow flag for single-bit ${type}.`,
+      });
+    }
+
+    if (zf !== oldFlags.ZF) {
+      diagnostics.push({
+        flag: 'ZF',
+        oldValue: oldFlags.ZF,
+        newValue: zf,
+        reason: `ZF=${zf}: Shift result is ${zf === 1 ? 'zero' : 'non-zero'}.`,
+      });
+    }
+
+    if (sf !== oldFlags.SF) {
+      diagnostics.push({
+        flag: 'SF',
+        oldValue: oldFlags.SF,
+        newValue: sf,
+        reason: `SF=${sf}: Most significant bit of shift result is ${sf}.`,
+      });
+    }
+
+    return diagnostics;
   }
 }

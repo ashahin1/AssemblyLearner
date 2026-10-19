@@ -12,6 +12,7 @@ export interface AssemblyResult {
   initialData: Map<number, number>; // address -> byte value
   errors: AssemblyError[];
   warnings: string[];
+  entryInstructionIndex?: number;
 }
 
 export class Parser {
@@ -23,6 +24,8 @@ export class Parser {
   private initialData: Map<number, number> = new Map();
   private errors: AssemblyError[] = [];
   private warnings: string[] = [];
+  private entrySymbol: string | null = null;
+  private currentProcUses: string[] = [];
   private rawInstructions: Array<{
     mnemonic: string;
     operandTokens: Token[][];
@@ -78,6 +81,13 @@ export class Parser {
         }
         if (dir === 'end') {
           this.advance();
+          if (!this.isAtLineEnd()) {
+            const symTok = this.peek();
+            if (symTok.type === TokenType.IDENTIFIER) {
+              this.entrySymbol = symTok.value.toLowerCase();
+              this.advance();
+            }
+          }
           this.consumeToEndOfLine();
           break; // End of assembly
         }
@@ -108,7 +118,12 @@ export class Parser {
 
       // Handle Data Segment declarations
       if (this.currentSegment === 'data') {
-        this.parseDataDeclaration();
+        try {
+          this.parseDataDeclaration();
+        } catch (err: any) {
+          this.errors.push(ErrorEngine.create(current.line, `Syntax error in .data: ${err.message}`));
+          this.consumeToEndOfLine();
+        }
         continue;
       }
 
@@ -155,6 +170,16 @@ export class Parser {
             sourceLine: procToken.line,
             params,
           });
+          this.currentProcUses = params;
+          for (const reg of params) {
+            this.rawInstructions.push({
+              mnemonic: 'push',
+              operandTokens: [[{ type: TokenType.REGISTER, value: reg, line: procToken.line, column: 0 }]],
+              line: procToken.line,
+              text: `push ${reg}`,
+              address: codeAddress++,
+            });
+          }
           this.consumeToEndOfLine();
           continue;
         }
@@ -163,6 +188,7 @@ export class Parser {
         if (this.check(TokenType.IDENTIFIER) && this.checkNext(TokenType.ENDP)) {
           this.advance(); // consume name
           this.advance(); // consume ENDP
+          this.currentProcUses = [];
           this.consumeToEndOfLine();
           continue;
         }
@@ -178,6 +204,38 @@ export class Parser {
             address: codeAddress,
           });
           codeAddress++;
+          this.consumeToEndOfLine();
+          continue;
+        }
+
+        // INVOKE directive: INVOKE ExitProcess, 0 or INVOKE SomeProc
+        if (this.checkValue('invoke')) {
+          const invokeToken = this.advance();
+          if (!this.isAtLineEnd()) {
+            const targetTok = this.advance();
+            const targetLower = targetTok.value.toLowerCase();
+            if (targetLower === 'exitprocess') {
+              this.rawInstructions.push({
+                mnemonic: 'invoke_exit',
+                operandTokens: [],
+                line: invokeToken.line,
+                text: 'exit',
+                address: codeAddress++,
+              });
+              this.consumeToEndOfLine();
+              continue;
+            } else {
+              this.rawInstructions.push({
+                mnemonic: 'call',
+                operandTokens: [[targetTok]],
+                line: invokeToken.line,
+                text: `call ${targetTok.value}`,
+                address: codeAddress++,
+              });
+              this.consumeToEndOfLine();
+              continue;
+            }
+          }
           this.consumeToEndOfLine();
           continue;
         }
@@ -206,6 +264,19 @@ export class Parser {
           }
           if (currentOp.length > 0) {
             operandTokens.push(currentOp);
+          }
+
+          if (mnemonic === 'ret' && this.currentProcUses.length > 0) {
+            for (let r = this.currentProcUses.length - 1; r >= 0; r--) {
+              const reg = this.currentProcUses[r];
+              this.rawInstructions.push({
+                mnemonic: 'pop',
+                operandTokens: [[{ type: TokenType.REGISTER, value: reg, line: instrToken.line, column: 0 }]],
+                line: instrToken.line,
+                text: `pop ${reg}`,
+                address: codeAddress++,
+              });
+            }
           }
 
           this.rawInstructions.push({
@@ -277,6 +348,19 @@ export class Parser {
       }
     }
 
+    let entryInstructionIndex = 0;
+    if (this.entrySymbol) {
+      const sym = this.symbols.get(this.entrySymbol);
+      if (sym && (sym.kind === 'procedure' || sym.kind === 'label')) {
+        entryInstructionIndex = sym.address;
+      }
+    } else if (this.symbols.has('main')) {
+      const mainSym = this.symbols.get('main');
+      if (mainSym && mainSym.kind === 'procedure') {
+        entryInstructionIndex = mainSym.address;
+      }
+    }
+
     return {
       success: this.errors.length === 0,
       instructions: parsedInstructions,
@@ -284,6 +368,7 @@ export class Parser {
       initialData: this.initialData,
       errors: this.errors,
       warnings: this.warnings,
+      entryInstructionIndex,
     };
   }
 
@@ -335,23 +420,58 @@ export class Parser {
         break;
       }
 
-      // DUP operator: count DUP(val)
-      if (tok.type === TokenType.NUMBER && this.checkNextValue('dup')) {
-        const count = tok.numericValue ?? 1;
-        this.advance(); // consume number
-        this.advance(); // consume DUP
-        this.consume(TokenType.LPAREN, "Expected '(' after DUP");
-        const valToken = this.peek();
-        let fillVal = 0;
-        if (valToken.type === TokenType.NUMBER) {
-          fillVal = valToken.numericValue ?? 0;
-          this.advance();
-        } else if (valToken.value === '?') {
-          fillVal = 0;
-          this.advance();
-        }
-        this.consume(TokenType.RPAREN, "Expected ')' after DUP value");
+      // DUP operator: <count> DUP(val) where count can be number or constant identifier
+      const isCountToken =
+        tok.type === TokenType.NUMBER ||
+        (tok.type === TokenType.IDENTIFIER && this.symbols.has(tok.value.toLowerCase()));
 
+      if (isCountToken && this.checkNextValue('dup')) {
+        let count = 1;
+        if (tok.type === TokenType.NUMBER) {
+          count = tok.numericValue ?? 1;
+        } else {
+          count = this.symbols.get(tok.value.toLowerCase())?.value ?? 1;
+        }
+        this.advance(); // consume count
+        this.advance(); // consume DUP
+
+        if (!this.match(TokenType.LPAREN)) {
+          this.errors.push(ErrorEngine.create(varNameToken.line, "Expected '(' after DUP"));
+          this.consumeToEndOfLine();
+          return;
+        }
+
+        let fillVal = 0;
+        if (this.checkValue('?')) {
+          this.advance();
+          fillVal = 0;
+        } else {
+          const innerTokens: Token[] = [];
+          while (!this.isAtLineEnd() && !this.check(TokenType.RPAREN)) {
+            innerTokens.push(this.advance());
+          }
+          if (innerTokens.length > 0) {
+            try {
+              fillVal = ExpressionEvaluator.evaluate(
+                innerTokens.map((t) => t.value),
+                this.symbols
+              ).value;
+            } catch (err: any) {
+              this.errors.push(
+                ErrorEngine.create(varNameToken.line, `Error evaluating DUP expression: ${err.message}`)
+              );
+              fillVal = 0;
+            }
+          }
+        }
+
+        if (!this.match(TokenType.RPAREN)) {
+          this.errors.push(ErrorEngine.create(varNameToken.line, "Expected ')' after DUP value"));
+          this.consumeToEndOfLine();
+          return;
+        }
+
+        count = Math.max(0, Math.min(65536, count));
         for (let i = 0; i < count; i++) {
           this.writeTypeBytes(fillVal, dType);
           totalBytes += dType;
@@ -361,11 +481,10 @@ export class Parser {
         break;
       }
 
-      // Plain numeric or question mark initializers
-      if (tok.type === TokenType.NUMBER || tok.value === '?') {
-        const val = tok.value === '?' ? 0 : tok.numericValue ?? 0;
+      // Uninitialized value: val DWORD ?
+      if (tok.value === '?') {
         this.advance();
-        this.writeTypeBytes(val, dType);
+        this.writeTypeBytes(0, dType);
         totalBytes += dType;
         elementCount++;
         if (this.match(TokenType.COMMA)) continue;
@@ -375,6 +494,33 @@ export class Parser {
       // Check for comment
       if (tok.type === TokenType.COMMENT) {
         this.advance();
+        break;
+      }
+
+      // Expressions, negative numbers, constants: e.g. -15, 100, CONST + 4
+      const exprTokens: Token[] = [];
+      while (!this.isAtLineEnd() && !this.check(TokenType.COMMA) && !this.check(TokenType.COMMENT)) {
+        exprTokens.push(this.advance());
+      }
+
+      if (exprTokens.length > 0) {
+        try {
+          const evalRes = ExpressionEvaluator.evaluate(
+            exprTokens.map((t) => t.value),
+            this.symbols
+          );
+          this.writeTypeBytes(evalRes.value, dType);
+          totalBytes += dType;
+          elementCount++;
+        } catch (err: any) {
+          this.errors.push(
+            ErrorEngine.create(
+              varNameToken.line,
+              `Error evaluating initializer '${exprTokens.map((t) => t.value).join(' ')}': ${err.message}`
+            )
+          );
+        }
+        if (this.match(TokenType.COMMA)) continue;
         break;
       }
 
@@ -464,15 +610,35 @@ export class Parser {
       let displacement = sym.address;
       let indexReg: string | undefined;
 
-      // Variable with index: myVar[esi] or myVar + 4
+      // Variable with index: myVar[esi * 4] or myVar + 4
       if (remainingTokens.length > 1) {
         if (remainingTokens[1].type === TokenType.LBRACKET) {
           const inner = remainingTokens.slice(2, -1);
-          if (inner.length === 1 && inner[0].type === TokenType.REGISTER) {
-            indexReg = inner[0].value.toLowerCase();
+          const memOp = this.parseBracketedMemory(inner, ptrSize ?? (sym.dataType as 1 | 2 | 4), line);
+          return {
+            ...memOp,
+            displacement: ((memOp.displacement ?? 0) + sym.address) >>> 0,
+            symbolRef: sym.name,
+            size: ptrSize ?? (sym.dataType as 1 | 2 | 4) ?? 4,
+            ptrSize,
+          };
+        } else if (remainingTokens[1].type === TokenType.PLUS || remainingTokens[1].type === TokenType.MINUS) {
+          const exprToks = remainingTokens.slice(2);
+          try {
+            const evalRes = ExpressionEvaluator.evaluate(
+              exprToks.map((t) => t.value),
+              this.symbols
+            );
+            const delta = remainingTokens[1].type === TokenType.PLUS ? evalRes.value : -evalRes.value;
+            displacement = (displacement + delta) >>> 0;
+          } catch {
+            if (remainingTokens[2]?.type === TokenType.NUMBER) {
+              const delta = remainingTokens[1].type === TokenType.PLUS
+                ? (remainingTokens[2].numericValue ?? 0)
+                : -(remainingTokens[2].numericValue ?? 0);
+              displacement = (displacement + delta) >>> 0;
+            }
           }
-        } else if (remainingTokens[1].type === TokenType.PLUS && remainingTokens[2]?.type === TokenType.NUMBER) {
-          displacement += remainingTokens[2].numericValue ?? 0;
         }
       }
 
@@ -580,6 +746,80 @@ export class Parser {
   private validateInstruction(mnemonic: string, operands: Operand[], line: number): void {
     const m = mnemonic.toLowerCase();
 
+    // 0-operand instructions
+    const noOpInstrs = ['ret', 'pushad', 'popad', 'pushfd', 'popfd', 'cbw', 'cwd', 'cdq', 'exit', 'crlf', 'clrscr', 'dumpregs', 'waitmsg'];
+    if (noOpInstrs.includes(m)) {
+      if (operands.length > 0) {
+        this.errors.push(ErrorEngine.create(line, `'${m.toUpperCase()}' does not take any operands.`));
+      }
+      return;
+    }
+
+    // 1-operand instructions
+    const oneOpInstrs = [
+      'inc', 'dec', 'neg', 'not', 'push', 'pop', 'mul', 'div', 'idiv',
+      'call', 'jmp',
+      'jz', 'je', 'jnz', 'jne', 'jc', 'jnc', 'js', 'jns', 'jo', 'jno',
+      'ja', 'jnbe', 'jae', 'jnb', 'jb', 'jnae', 'jbe', 'jna',
+      'jg', 'jnle', 'jge', 'jnl', 'jl', 'jnge', 'jle', 'jng',
+      'loop', 'loope', 'loopz', 'loopne', 'loopnz',
+    ];
+    if (oneOpInstrs.includes(m)) {
+      if (operands.length !== 1) {
+        this.errors.push(ErrorEngine.create(line, `Expected 1 operand for '${m.toUpperCase()}', found ${operands.length}.`));
+        return;
+      }
+    }
+
+    // 2-operand instructions
+    const twoOpInstrs = [
+      'mov', 'movzx', 'movsx', 'xchg', 'lea', 'add', 'sub', 'cmp',
+      'and', 'or', 'xor', 'test', 'shl', 'shr', 'sal', 'sar', 'rol', 'ror', 'rcl', 'rcr'
+    ];
+    if (twoOpInstrs.includes(m)) {
+      if (operands.length !== 2) {
+        this.errors.push(ErrorEngine.create(line, `Expected 2 operands for '${m.toUpperCase()}', found ${operands.length}.`));
+        return;
+      }
+    }
+
+    // IMUL can be 1, 2, or 3 operands
+    if (m === 'imul') {
+      if (operands.length < 1 || operands.length > 3) {
+        this.errors.push(ErrorEngine.create(line, `Expected 1, 2, or 3 operands for 'IMUL', found ${operands.length}.`));
+        return;
+      }
+    }
+
+    // Disallow immediate destinations
+    const writeDestInstrs = [
+      'mov', 'movzx', 'movsx', 'add', 'sub', 'inc', 'dec', 'neg', 'not',
+      'pop', 'shl', 'shr', 'sal', 'sar', 'rol', 'ror', 'rcl', 'rcr', 'and', 'or', 'xor'
+    ];
+    if (writeDestInstrs.includes(m) && operands.length >= 1 && operands[0].kind === 'immediate') {
+      this.errors.push(ErrorEngine.create(line, `Cannot use immediate constant as destination in '${m.toUpperCase()}'.`));
+    }
+
+    // XCHG cannot use immediate operands
+    if (m === 'xchg') {
+      if (operands.some((op) => op.kind === 'immediate')) {
+        this.errors.push(ErrorEngine.create(line, "XCHG instruction cannot accept an immediate constant."));
+      }
+      if (operands[0]?.kind === 'memory' && operands[1]?.kind === 'memory') {
+        this.errors.push(ErrorEngine.create(line, "XCHG cannot exchange two memory operands directly."));
+      }
+    }
+
+    // LEA: destination must be register, source must be memory
+    if (m === 'lea') {
+      if (operands[0]?.kind !== 'register') {
+        this.errors.push(ErrorEngine.create(line, "LEA destination must be a general-purpose register."));
+      }
+      if (operands[1]?.kind !== 'memory') {
+        this.errors.push(ErrorEngine.create(line, "LEA source operand must be a memory reference."));
+      }
+    }
+
     // Memory to memory move check
     if (m === 'mov' || m === 'add' || m === 'sub' || m === 'cmp') {
       if (operands.length === 2 && operands[0].kind === 'memory' && operands[1].kind === 'memory') {
@@ -593,13 +833,34 @@ export class Parser {
       }
     }
 
-    // Size mismatch check between register and memory or register and register
-    if (operands.length === 2 && operands[0].kind === 'register' && operands[1].kind === 'register') {
-      if (operands[0].size && operands[1].size && operands[0].size !== operands[1].size) {
+    // MOVZX / MOVSX validation
+    if (m === 'movzx' || m === 'movsx') {
+      if (operands[0]?.kind !== 'register') {
+        this.errors.push(ErrorEngine.create(line, `${m.toUpperCase()} destination must be a register.`));
+      }
+      if (operands[0]?.size && operands[1]?.size && operands[0].size <= operands[1].size) {
         this.errors.push(
           ErrorEngine.create(
             line,
-            `Operand size mismatch in '${m.toUpperCase()}': '${operands[0].register}' is ${operands[0].size * 8}-bit, but '${operands[1].register}' is ${operands[1].size * 8}-bit.`
+            `${m.toUpperCase()} destination (${operands[0].size * 8}-bit) must be larger than source (${operands[1].size * 8}-bit).`
+          )
+        );
+      }
+    }
+
+    // Size mismatch check between register and memory or register and register
+    if (
+      operands.length === 2 &&
+      operands[0].size &&
+      operands[1].size &&
+      operands[1].kind !== 'immediate' &&
+      !['movzx', 'movsx', 'shl', 'shr', 'sal', 'sar', 'rol', 'ror', 'rcl', 'rcr'].includes(m)
+    ) {
+      if (operands[0].size !== operands[1].size) {
+        this.errors.push(
+          ErrorEngine.create(
+            line,
+            `Operand size mismatch in '${m.toUpperCase()}': destination is ${operands[0].size * 8}-bit, but source is ${operands[1].size * 8}-bit.`
           )
         );
       }

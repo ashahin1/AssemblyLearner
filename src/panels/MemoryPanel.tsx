@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useCPUStore } from '../store/cpuStore';
+import { MEMORY_LAYOUT } from '../engine/constants';
 
 export type MemoryFormat = 'hex' | 'unsigned' | 'signed' | 'binary';
 export type MemoryUnitSize = 1 | 2 | 4;
@@ -14,15 +15,21 @@ export const MemoryPanel: React.FC = () => {
 
   const allocated = memory.getAllAllocated();
 
-  // Group allocated bytes by unitSize (1, 2, or 4)
+  // Group allocated bytes by unitSize (1, 2, or 4) strictly within the .data segment
   const items: Array<{ address: number; value: number; ascii: string }> = [];
 
-  if (allocated.length > 0) {
-    const minAddr = allocated[0].address;
-    const maxAddr = allocated[allocated.length - 1].address;
-    const alignedStart = minAddr - (minAddr % unitSize);
+  const dataAllocated = allocated.filter(
+    (b) => b.address >= MEMORY_LAYOUT.DATA_BASE && b.address < MEMORY_LAYOUT.DATA_BASE + MEMORY_LAYOUT.DATA_SIZE
+  );
 
-    for (let addr = alignedStart; addr <= maxAddr; addr += unitSize) {
+  if (dataAllocated.length > 0) {
+    const minAddr = dataAllocated[0].address;
+    const maxAddr = dataAllocated[dataAllocated.length - 1].address;
+    const alignedStart = minAddr - (minAddr % unitSize);
+    // Limit display to at most 256 rows to prevent DOM bloat
+    const endAddr = Math.min(maxAddr, alignedStart + 256 * unitSize);
+
+    for (let addr = alignedStart; addr <= endAddr; addr += unitSize) {
       let val = 0;
       let ascii = '';
 

@@ -16,7 +16,7 @@ export class ProgramRunner {
   private history: HistoryManager;
   private printOutput: (text: string) => void;
   private clearConsole: () => void;
-  private getConsoleLength: () => number;
+  private getConsoleOutput: () => string;
 
   private isHalted: boolean = false;
   private totalSteps: number = 0;
@@ -29,7 +29,8 @@ export class ProgramRunner {
     history: HistoryManager,
     printOutput: (text: string) => void,
     clearConsole: () => void,
-    getConsoleLength: () => number
+    getConsoleOutput: (() => string) | (() => number),
+    entryInstructionIndex: number = 0
   ) {
     this.instructions = instructions;
     this.symbols = symbols;
@@ -38,7 +39,13 @@ export class ProgramRunner {
     this.history = history;
     this.printOutput = printOutput;
     this.clearConsole = clearConsole;
-    this.getConsoleLength = getConsoleLength;
+    this.getConsoleOutput = () => {
+      const val = getConsoleOutput();
+      return typeof val === 'string' ? val : '';
+    };
+    if (entryInstructionIndex > 0) {
+      this.cpu.setRegister('eip', entryInstructionIndex);
+    }
   }
 
   get halted(): boolean {
@@ -47,6 +54,14 @@ export class ProgramRunner {
 
   get stepCount(): number {
     return this.totalSteps;
+  }
+
+  unhalt(): void {
+    this.isHalted = false;
+  }
+
+  setStepCount(count: number): void {
+    this.totalSteps = Math.max(0, count);
   }
 
   /**
@@ -74,7 +89,7 @@ export class ProgramRunner {
         this.cpu,
         instr.sourceLine,
         instr.sourceText,
-        this.getConsoleLength()
+        this.getConsoleOutput()
       );
 
       // 2. Check if instruction is a CALL to an Irvine32 procedure

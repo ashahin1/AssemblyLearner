@@ -41,7 +41,9 @@ export const Ch7Page: React.FC = () => {
   // Multiplier / Divider test
   const [mulA, setMulA] = useState<number>(50);
   const [mulB, setMulB] = useState<number>(4);
-  const mulProd = (mulA * mulB) >>> 0;
+  const fullMulProd = BigInt(mulA >>> 0) * BigInt(mulB >>> 0);
+  const mulLow = Number(fullMulProd & BigInt(0xffffffff)) >>> 0;
+  const mulHigh = Number((fullMulProd >> BigInt(32)) & BigInt(0xffffffff)) >>> 0;
 
   const [divNum, setDivNum] = useState<number>(200);
   const [divDen, setDivDen] = useState<number>(6);
@@ -214,8 +216,8 @@ END main
           <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1 pt-2">
             <span className="text-[10px] text-slate-400 font-sans block">Result register pair:</span>
             <div className="flex items-center justify-between text-sm font-bold text-amber-300">
-              <span>EDX (High): 0</span>
-              <span>EAX (Low): {mulProd}</span>
+              <span>EDX (High): {mulHigh}</span>
+              <span>EAX (Low): {mulLow}</span>
             </div>
           </div>
         </div>

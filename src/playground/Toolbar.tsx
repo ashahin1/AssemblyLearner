@@ -34,14 +34,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
   const isAssembled = useCPUStore((s) => s.isAssembled);
   const isHalted = useCPUStore((s) => s.isHalted);
   const isCodeDirty = useCPUStore((s) => s.isCodeDirty);
-  const totalStepsRecorded = useCPUStore((s) => s.totalStepsRecorded);
+  const currentStepIndex = useCPUStore((s) => s.currentStepIndex);
   const executionSpeedMs = useUIStore((s) => s.executionSpeedMs);
   const setIsSettingsOpen = useUIStore((s) => s.setIsSettingsOpen);
   const setIsHandbookOpen = useUIStore((s) => s.setIsHandbookOpen);
 
   const [copiedShare, setCopiedShare] = useState(false);
 
-  const isStaleSession = isCodeDirty && totalStepsRecorded > 0;
+  const isStaleSession = isCodeDirty && currentStepIndex > 0;
   const isRestartNeeded = !isAssembled || isHalted || isCodeDirty;
 
   const handleRun = async () => {
@@ -130,11 +130,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({ currentCode, onOpenExamples })
 
         <button
           onClick={stepBackward}
-          disabled={isRunning || isStaleSession || totalStepsRecorded === 0}
+          disabled={isRunning || isStaleSession || currentStepIndex === 0}
           title={
             isStaleSession
               ? "Cannot step backward after modifying code. Click Restart to reload."
-              : totalStepsRecorded === 0
+              : currentStepIndex === 0
               ? "Cannot step backward (at beginning of program)"
               : "Step Backward (Undo)"
           }

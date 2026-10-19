@@ -39,7 +39,8 @@ export class Irvine32Runtime {
         const edx = cpu.getRegister('edx');
         let str = '';
         let offset = edx;
-        while (true) {
+        const MAX_STR_LEN = 4096;
+        while (str.length < MAX_STR_LEN) {
           const byte = memory.readByte(offset++);
           if (byte === 0) break;
           str += String.fromCharCode(byte);
@@ -107,11 +108,15 @@ export class Irvine32Runtime {
 
       case 'dumpmem': {
         const esi = cpu.getRegister('esi');
-        const ecx = cpu.getRegister('ecx');
-        const ebx = cpu.getRegister('ebx') || 1; // unit size: 1, 2, or 4
-        let out = `Dump of Memory: address ${esi.toString(16).toUpperCase()}h, count ${ecx}\n`;
-        for (let i = 0; i < ecx; i++) {
-          const addr = esi + i * ebx;
+        const rawEcx = cpu.getRegister('ecx');
+        const count = Math.min(Math.max(0, rawEcx), 256);
+        let ebx = cpu.getRegister('ebx');
+        if (ebx !== 1 && ebx !== 2 && ebx !== 4) {
+          ebx = 4;
+        }
+        let out = `Dump of Memory: address ${esi.toString(16).toUpperCase()}h, count ${count}\n`;
+        for (let i = 0; i < count; i++) {
+          const addr = (esi + i * ebx) >>> 0;
           let val = 0;
           if (ebx === 1) val = memory.readByte(addr);
           else if (ebx === 2) val = memory.readWord(addr);
@@ -149,10 +154,23 @@ export class Irvine32Runtime {
         const edx = cpu.getRegister('edx');
         let len = 0;
         let addr = edx;
-        while (memory.readByte(addr++) !== 0) {
+        const MAX_STR_LEN = 4096;
+        while (len < MAX_STR_LEN && memory.readByte(addr++) !== 0) {
           len++;
         }
         cpu.setRegister('eax', len);
+        break;
+      }
+
+      case 'getmseconds': {
+        const midnight = new Date().setHours(0, 0, 0, 0);
+        const ms = ((Date.now() - midnight) >>> 0);
+        cpu.setRegister('eax', ms);
+        break;
+      }
+
+      case 'delay': {
+        // Delay takes milliseconds in EAX, non-blocking in single-threaded web environment
         break;
       }
 

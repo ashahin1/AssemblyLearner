@@ -36,15 +36,21 @@ export class HistoryManager {
     cpu: CPU,
     sourceLine: number,
     instructionText: string,
-    consoleLength: number,
+    consoleInfo: number | string = 0,
+    changedRegisters: string[] = [],
     diagnostics: FlagDiagnostic[] = []
   ): void {
+    const consoleText = typeof consoleInfo === 'string' ? consoleInfo : undefined;
+    const consoleLength = typeof consoleInfo === 'number' ? consoleInfo : consoleInfo.length;
+
     const snapshot: ExecutionSnapshot = {
       eip: cpu.getRegisters().eip,
       registers: cpu.getRegisters(),
       flags: cpu.getFlags(),
       modifiedMemory: [...this.currentMemoryChanges],
       consoleOutputLength: consoleLength,
+      consoleOutput: consoleText,
+      changedRegisters: [...changedRegisters],
       sourceLine,
       instructionText,
       flagDiagnostics: diagnostics,
@@ -61,7 +67,16 @@ export class HistoryManager {
   /**
    * Steps backward by restoring the previous snapshot and reverting memory writes
    */
-  popSnapshot(cpu: CPU, memory: MemoryManager): { sourceLine: number; consoleLength: number } | null {
+  popSnapshot(
+    cpu: CPU,
+    memory: MemoryManager
+  ): {
+    sourceLine: number;
+    consoleLength: number;
+    consoleOutput?: string;
+    changedRegisters?: string[];
+    flagDiagnostics?: FlagDiagnostic[];
+  } | null {
     if (this.history.length === 0) return null;
 
     const snapshot = this.history.pop()!;
@@ -81,6 +96,9 @@ export class HistoryManager {
     return {
       sourceLine: snapshot.sourceLine,
       consoleLength: snapshot.consoleOutputLength,
+      consoleOutput: snapshot.consoleOutput,
+      changedRegisters: snapshot.changedRegisters,
+      flagDiagnostics: snapshot.flagDiagnostics,
     };
   }
 

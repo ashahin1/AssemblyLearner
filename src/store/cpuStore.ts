@@ -35,6 +35,7 @@ interface CPUStoreState {
   assembledCode: string | null;
   isCodeDirty: boolean;
   breakpoints: Set<number>;
+  wasRunningBeforeInput: boolean;
 
   // Actions
   assembleCode: (code: string) => boolean;
@@ -82,6 +83,7 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
     assembledCode: null,
     isCodeDirty: false,
     breakpoints: new Set(),
+    wasRunningBeforeInput: false,
 
     assembleCode: (code: string) => {
       const { cpu, memory, history } = get();
@@ -101,11 +103,17 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
           currentExecutionLine: null,
           runner: null,
           generator: null,
+          wasRunningBeforeInput: false,
         });
         return false;
       }
 
       memory.loadInitialData(parsed.initialData);
+
+      const entryIndex = (parsed as any).entryInstructionIndex ?? 0;
+      if (entryIndex > 0) {
+        cpu.setRegister('eip', entryIndex);
+      }
 
       const runner = new ProgramRunner(
         parsed.instructions,
@@ -115,7 +123,8 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
         history,
         (text) => set((s) => ({ consoleOutput: s.consoleOutput + text })),
         () => set({ consoleOutput: '' }),
-        () => get().consoleOutput.length
+        () => get().consoleOutput,
+        entryIndex
       );
 
       const generator = runner.runGenerator();
@@ -134,9 +143,10 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
         isWaitingForInput: false,
         isHalted: false,
         isRunning: false,
+        wasRunningBeforeInput: false,
         currentStepIndex: 0,
         totalStepsRecorded: 0,
-        currentExecutionLine: parsed.instructions[0]?.sourceLine ?? null,
+        currentExecutionLine: parsed.instructions[entryIndex]?.sourceLine ?? null,
       });
 
       return true;
@@ -170,11 +180,13 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
       }
 
       if (next.value?.type === 'WAITING_FOR_INPUT') {
+        const wasRunning = get().isRunning;
         set({
           isWaitingForInput: true,
           inputPrompt: next.value.prompt,
           inputType: next.value.inputType,
           isRunning: false,
+          wasRunningBeforeInput: wasRunning,
         });
         return;
       }
@@ -220,18 +232,28 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
     },
 
     stepBackward: () => {
-      const { cpu, memory, history } = get();
+      const { cpu, memory, history, runner } = get();
       const prev = history.popSnapshot(cpu, memory);
       if (!prev) return;
 
+      if (runner) {
+        runner.unhalt();
+        runner.setStepCount(history.length);
+      }
+      const generator = runner ? runner.runGenerator() : null;
+
       set({
+        generator,
         cpuState: cpu.getState(),
         currentExecutionLine: prev.sourceLine,
-        consoleOutput: get().consoleOutput.slice(0, prev.consoleLength),
+        consoleOutput: prev.consoleOutput ?? get().consoleOutput.slice(0, prev.consoleLength),
         currentStepIndex: history.length,
-        changedRegisters: new Set(),
-        flagDiagnostics: [],
+        totalStepsRecorded: history.length,
+        changedRegisters: new Set(prev.changedRegisters ?? []),
+        flagDiagnostics: prev.flagDiagnostics ?? [],
         isHalted: false,
+        isWaitingForInput: false,
+        wasRunningBeforeInput: false,
       });
     },
 
@@ -248,7 +270,7 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
     },
 
     pause: () => {
-      set({ isRunning: false });
+      set({ isRunning: false, wasRunningBeforeInput: false });
     },
 
     reset: () => {
@@ -264,6 +286,7 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
         isWaitingForInput: false,
         isRunning: false,
         isHalted: false,
+        wasRunningBeforeInput: false,
         currentExecutionLine: null,
         currentStepIndex: 0,
         totalStepsRecorded: 0,
@@ -272,17 +295,83 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
     },
 
     submitInput: async (input: string) => {
-      const { generator } = get();
+      const { generator, cpu, history, breakpoints } = get();
       if (!generator) return;
 
+      const oldRegs = { ...cpu.getRegisters() };
       set({
         isWaitingForInput: false,
         consoleOutput: get().consoleOutput + input + '\n',
       });
 
       // Resume generator with input value
-      await generator.next(input);
-      set({ cpuState: get().cpu.getState() });
+      const next = await generator.next(input);
+
+      if (next.done || next.value?.type === 'HALTED') {
+        set({
+          isHalted: true,
+          isRunning: false,
+          wasRunningBeforeInput: false,
+          currentExecutionLine: null,
+          cpuState: cpu.getState(),
+        });
+        return;
+      }
+
+      if (next.value?.type === 'WAITING_FOR_INPUT') {
+        set({
+          isWaitingForInput: true,
+          inputPrompt: next.value.prompt,
+          inputType: next.value.inputType,
+          isRunning: false,
+        });
+        return;
+      }
+
+      if (next.value?.type === 'ERROR') {
+        set({
+          assemblyErrors: [
+            {
+              line: next.value.line ?? 1,
+              message: next.value.message,
+              suggestion: next.value.suggestion,
+            },
+          ],
+          isRunning: false,
+          wasRunningBeforeInput: false,
+          isHalted: true,
+        });
+        return;
+      }
+
+      if (next.value?.type === 'STEP_COMPLETE') {
+        const newRegs = cpu.getRegisters();
+        const changed = new Set<string>();
+        for (const [key, val] of Object.entries(newRegs)) {
+          if ((oldRegs as any)[key] !== val) {
+            changed.add(key);
+          }
+        }
+
+        set({
+          currentExecutionLine: next.value.line,
+          cpuState: cpu.getState(),
+          changedRegisters: changed,
+          flagDiagnostics: next.value.flagDiagnostics ?? [],
+          currentStepIndex: history.length,
+          totalStepsRecorded: history.length,
+        });
+
+        if (breakpoints.has(next.value.line)) {
+          set({ isRunning: false, wasRunningBeforeInput: false });
+          return;
+        }
+      }
+
+      if (get().wasRunningBeforeInput) {
+        set({ wasRunningBeforeInput: false });
+        get().runContinuous();
+      }
     },
 
     toggleBreakpoint: (line: number) => {

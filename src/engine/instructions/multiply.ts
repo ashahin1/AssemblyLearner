@@ -113,9 +113,36 @@ export class MultiplyDivideInstructions {
       const src = operands[1];
       const destVal = DataTransferInstructions.getOperandValue(dest, cpu, memory);
       const srcVal = DataTransferInstructions.getOperandValue(src, cpu, memory);
-      const product = ((destVal | 0) * (srcVal | 0)) | 0;
-      DataTransferInstructions.setOperandValue(dest, product >>> 0, cpu, memory);
-      return [];
+      const size = dest.size ?? 4;
+      let cfOf: 0 | 1 = 0;
+
+      if (size === 2) {
+        const d = (destVal << 16) >> 16;
+        const s = (srcVal << 16) >> 16;
+        const product = d * s;
+        DataTransferInstructions.setOperandValue(dest, product & 0xffff, cpu, memory);
+        cfOf = product < -32768 || product > 32767 ? 1 : 0;
+      } else {
+        const d = BigInt(destVal | 0);
+        const s = BigInt(srcVal | 0);
+        const product = d * s;
+        DataTransferInstructions.setOperandValue(dest, Number(BigInt.asIntN(32, product)) >>> 0, cpu, memory);
+        cfOf = product < BigInt(-2147483648) || product > BigInt(2147483647) ? 1 : 0;
+      }
+
+      cpu.setState({
+        ...cpu.getState(),
+        flags: { ...oldFlags, CF: cfOf, OF: cfOf },
+      });
+
+      return [
+        {
+          flag: 'OF',
+          oldValue: oldFlags.OF,
+          newValue: cfOf,
+          reason: `OF=CF=${cfOf}: 2-operand signed product ${cfOf === 1 ? 'overflowed destination register width' : 'fits within destination register'}.`,
+        },
+      ];
     }
 
     // 3-operand form: IMUL reg, reg/mem, imm
@@ -125,9 +152,36 @@ export class MultiplyDivideInstructions {
       const src2 = operands[2];
       const v1 = DataTransferInstructions.getOperandValue(src1, cpu, memory);
       const v2 = DataTransferInstructions.getOperandValue(src2, cpu, memory);
-      const product = ((v1 | 0) * (v2 | 0)) | 0;
-      DataTransferInstructions.setOperandValue(dest, product >>> 0, cpu, memory);
-      return [];
+      const size = dest.size ?? 4;
+      let cfOf: 0 | 1 = 0;
+
+      if (size === 2) {
+        const s1 = (v1 << 16) >> 16;
+        const s2 = (v2 << 16) >> 16;
+        const product = s1 * s2;
+        DataTransferInstructions.setOperandValue(dest, product & 0xffff, cpu, memory);
+        cfOf = product < -32768 || product > 32767 ? 1 : 0;
+      } else {
+        const s1 = BigInt(v1 | 0);
+        const s2 = BigInt(v2 | 0);
+        const product = s1 * s2;
+        DataTransferInstructions.setOperandValue(dest, Number(BigInt.asIntN(32, product)) >>> 0, cpu, memory);
+        cfOf = product < BigInt(-2147483648) || product > BigInt(2147483647) ? 1 : 0;
+      }
+
+      cpu.setState({
+        ...cpu.getState(),
+        flags: { ...oldFlags, CF: cfOf, OF: cfOf },
+      });
+
+      return [
+        {
+          flag: 'OF',
+          oldValue: oldFlags.OF,
+          newValue: cfOf,
+          reason: `OF=CF=${cfOf}: 3-operand signed product ${cfOf === 1 ? 'overflowed destination register width' : 'fits within destination register'}.`,
+        },
+      ];
     }
 
     return [];

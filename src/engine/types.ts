@@ -121,6 +121,8 @@ export interface ExecutionSnapshot {
   flags: Flags;
   modifiedMemory: Array<{ address: number; oldValue: number }>;
   consoleOutputLength: number;
+  consoleOutput?: string;
+  changedRegisters?: string[];
   sourceLine: number;
   instructionText: string;
   flagDiagnostics: FlagDiagnostic[];

@@ -4,17 +4,18 @@ import React, { useState } from 'react';
 import { OpenInPlayground } from '../shared/OpenInPlayground';
 import { ArrowLeft, GitBranch, Check, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { FlagEngine } from '../../engine/flags';
 
 export const Ch6Page: React.FC = () => {
   const [opA, setOpA] = useState<number>(10);
   const [opB, setOpB] = useState<number>(20);
 
-  // CMP EAX, EBX computes opA - opB
-  const diff = opA - opB;
-  const zf = diff === 0 ? 1 : 0;
-  const sf = diff < 0 ? 1 : 0;
-  const cf = (opA >>> 0) < (opB >>> 0) ? 1 : 0; // unsigned borrow
-  const of = ((opA ^ opB) & (opA ^ diff) & 0x80000000) !== 0 ? 1 : 0;
+  // CMP EAX, EBX computes flags for opA - opB
+  const flags = FlagEngine.computeSubFlags(opA, opB, 4);
+  const zf = flags.ZF;
+  const sf = flags.SF;
+  const cf = flags.CF;
+  const of = flags.OF;
 
   // Jump evaluation
   const jumps: Array<{ name: string; type: string; taken: boolean; reason: string }> = [

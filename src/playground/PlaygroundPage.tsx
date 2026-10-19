@@ -45,7 +45,10 @@ const MOBILE_TABS: Array<{ id: MobileTab; label: string; Icon: LucideIcon }> = [
 export const PlaygroundPage: React.FC = () => {
   const [code, setCode] = useState<string>(() => {
     const urlCode = PersistenceManager.decodeCodeFromUrl();
-    if (urlCode) return urlCode;
+    if (urlCode) {
+      PersistenceManager.saveCode(urlCode);
+      return urlCode;
+    }
     const savedCode = PersistenceManager.loadCode();
     return savedCode ?? DEFAULT_CODE;
   });

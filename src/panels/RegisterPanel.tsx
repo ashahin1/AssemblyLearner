@@ -16,7 +16,8 @@ export const RegisterPanel: React.FC = () => {
   const regs = cpuState.registers;
 
   const formatValue = (val: number, bits: 8 | 16 | 32, format: RegisterDisplayFormat): string => {
-    const unsigned = (val >>> 0) & (bits === 8 ? 0xff : bits === 16 ? 0xffff : 0xffffffff);
+    const mask = bits === 8 ? 0xff : bits === 16 ? 0xffff : 0xffffffff;
+    const unsigned = (val & mask) >>> 0;
     if (format === 'hex') {
       const pad = bits === 8 ? 2 : bits === 16 ? 4 : 8;
       return unsigned.toString(16).toUpperCase().padStart(pad, '0') + 'h';

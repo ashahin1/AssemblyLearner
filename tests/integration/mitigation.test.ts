@@ -312,4 +312,51 @@ END main
     expect(dataAllocated.every((b) => b.address >= MEMORY_LAYOUT.DATA_BASE)).toBe(true);
     expect(dataAllocated.some((b) => b.address < MEMORY_LAYOUT.DATA_BASE)).toBe(false);
   });
+
+  it('Sign-extension formatting: MOVSX ebx, var1 (80h) sets EBX to 0xFFFFFF80 without negative hex string', async () => {
+    const code = `
+.data
+    var1 byte 80h
+.code
+main PROC
+    mov eax, 10000h
+    mov ebx, 20000h
+    mov ecx, 30000h
+    mov edx, 40000h
+    movsx ebx, var1
+    exit
+main ENDP
+END main
+`;
+    const tokens = new Lexer(code).tokenize();
+    const parsed = new Parser(tokens).assemble();
+    expect(parsed.errors.length).toBe(0);
+
+    const cpu = new CPU();
+    const memory = new MemoryManager();
+    memory.loadInitialData(parsed.initialData);
+    const history = new HistoryManager();
+    let consoleOut = '';
+
+    const runner = new ProgramRunner(
+      parsed.instructions,
+      parsed.symbols,
+      cpu,
+      memory,
+      history,
+      (text) => (consoleOut += text),
+      () => (consoleOut = ''),
+      () => consoleOut.length,
+      parsed.entryInstructionIndex
+    );
+
+    const gen = runner.runGenerator();
+    let step = await gen.next();
+    while (!step.done && step.value?.type !== 'HALTED') {
+      step = await gen.next();
+    }
+
+    expect(cpu.getRegister('ebx')).toBe(0xffffff80);
+    expect((cpu.getRegister('ebx') >>> 0).toString(16).toUpperCase().padStart(8, '0') + 'h').toBe('FFFFFF80h');
+  });
 });

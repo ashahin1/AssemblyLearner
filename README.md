@@ -4,7 +4,8 @@
 *Buraydah Private Colleges, Faculty of Engineering and Information Technology*  
 *Curriculum Text:* **Assembly Language for x86 Processors (7th Edition)** by Kip R. Irvine (Chapters 1–7)  
 
-🔗 **Live Web Application:** [https://ashahin1.github.io/AssemblyLearner/](https://ashahin1.github.io/AssemblyLearner/)
+🔗 **Live Web Application:** [https://ashahin1.github.io/AssemblyLearner/](https://ashahin1.github.io/AssemblyLearner/)  
+📖 **Student Handbook & Documentation:** [`STUDENT_HANDBOOK.md`](./STUDENT_HANDBOOK.md)
 
 ---
 
@@ -15,16 +16,19 @@
 ### Key Capabilities:
 - **Playground IDE & Simulator:**
   - **Responsive Mobile & Smartphone Layout:** Dynamic bottom tab bar (`Code`, `Registers & Flags`, `Memory & Stack`, `Console`) with state retention, auto-switching on keyboard input, unread output badge, and `100dvh` safe-area support.
+  - **Interactive Breakpoints:** Click any line number in the gutter to toggle red breakpoint indicators (`●`). Running automatically pauses when a breakpoint is encountered.
+  - **Multi-Error Diagnostics Drawer:** Scrollable footer panel displaying all assembly errors simultaneously, with line indicators and syntax fix suggestions.
   - **Syntax Highlighting (CodeMirror 6):** Rich syntax colorization for MASM instructions, registers, directives, numeric literals, and comments across both Dark and Light themes.
   - **Classroom TV Mode & Global UI Zoom (80%–200%):** One-click `📺 TV Mode` (140% zoom) and granular `[-] / [+]` scale controls designed specifically so students in the back rows of large lecture rooms can read all panels clearly.
   - **Presentation Fullscreen Toggle (⛶):** Hides browser toolbars and OS taskbars on classroom TVs and projectors.
   - **Synchronized Nested Registers:** Real-time visual cascading for `EAX` $\to$ `AX` $\to$ `AH` / `AL`, `EBX`, `ECX`, `EDX`, `ESI`, `EDI`, `EBP`, `ESP`, and `EIP`.
   - **Multi-Format Register Display:** Instant switching between Hex, Unsigned Decimal, Signed Decimal (Two's Complement), and Binary.
   - **Multi-Format Stack Panel:** Downward-growing call stack tracking `ESP`/`EBP` with format toggles (`HEX`, `U-DEC`, `S-DEC`, `BIN`).
-  - **Advanced Memory Hex Grid:** Little-endian data segment inspector supporting configurable granularity (`1B Byte`, `2B Word`, `4B DWord`) and multi-format display (`HEX`, `U-DEC`, `S-DEC`, `BIN`) with ASCII preview.
+  - **Advanced Memory Hex Grid:** Little-endian `.data` segment inspector supporting configurable granularity (`1B Byte`, `2B Word`, `4B DWord`) and multi-format display (`HEX`, `U-DEC`, `S-DEC`, `BIN`) with ASCII preview and bounded segment isolation.
   - **Dynamic IA-32 Status Flags:** Live flag indicators (`ZF`, `CF`, `SF`, `OF`, `PF`, `AF`) with pedagogical diagnostic explanations.
-  - **Undo / Time-Travel Scrubber:** Step-forward and **Step-backward** timeline scrubber with undo-log snapshots.
-  - **Virtual Irvine32 CRT Console:** Supports standard I/O library procedures (`WriteString`, `WriteInt`, `WriteDec`, `WriteHex`, `WriteBin`, `WriteChar`, `Crlf`, `DumpRegs`, `DumpMem`) and non-blocking asynchronous user input (`ReadInt`, `ReadDec`, `ReadHex`, `ReadChar`, `ReadString`).
+  - **Full Undo / Time-Travel Scrubber:** Step-forward and **Step-backward** timeline scrubber with full undo-log snapshots (reversing CPU state, memory, and console output seamlessly).
+  - **Virtual Irvine32 CRT Console:** Supports standard I/O library procedures (`WriteString`, `WriteInt`, `WriteDec`, `WriteHex`, `WriteBin`, `WriteChar`, `Crlf`, `Clrscr`, `DumpRegs`, `DumpMem`, `GetMseconds`, `Random32`, `WaitMsg`) and non-blocking asynchronous user input (`ReadInt`, `ReadDec`, `ReadHex`, `ReadChar`, `ReadString`).
+  - **Advanced MASM Directives:** Supports `PROC USES` (automatic register preservation), `INVOKE`, negative initializers (`SDWORD -15`), expressions, and symbolic `DUP` counts.
   - **Direct Font Size Controls:** Instant `[A-]` and `[A+]` buttons in the editor header (12px to 32px).
   - **Share-by-URL:** Compresses student code into a shareable link via LZ-String so students can send code directly to their instructor.
   - **LocalStorage Autosave:** Automatically preserves student work and preferences across browser sessions.
@@ -56,7 +60,7 @@ npm install
 # Run Vite dev server with Hot Module Replacement
 npm run dev
 
-# Run Vitest test suite (all 22 automated tests)
+# Run Vitest test suite (all 38 automated unit & integration tests)
 npm test
 
 # Build single-file bundle and distribution package
@@ -99,6 +103,9 @@ Smart educational TVs in classrooms can run the studio completely offline withou
 If you wish to provide students with an offline file directly through Blackboard:
 - Upload [`COE224-Assembly-Studio.zip`](./COE224-Assembly-Studio.zip) as a content file. Blackboard's file scanner allows `.zip` attachments without flagging. Students simply download the archive, extract it, and open `COE224-Assembly-Studio.html` offline.
 
+### Method 3: Course Handbook & Pedagogical Documentation
+- Distribute [`STUDENT_HANDBOOK.md`](./STUDENT_HANDBOOK.md) (or export to PDF) to your students as an all-in-one companion guide covering the simulator layout, CPU registers, flags, memory format, procedures, and troubleshooting.
+
 ---
 
 ## 🌐 Live Access & GitHub Pages Deployment
@@ -110,7 +117,7 @@ The repository is pre-configured for continuous hosting and automated deployment
 
 ### Method A: Automated GitHub Actions (Active)
 The repository includes [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml):
-1. Whenever commits are pushed to `main`, GitHub Actions automatically runs all 22 tests, compiles the production bundle, and deploys directly to:
+1. Whenever commits are pushed to `main`, GitHub Actions automatically runs all 38 unit and integration tests, compiles the production bundle, and deploys directly to:
    **[https://ashahin1.github.io/AssemblyLearner/](https://ashahin1.github.io/AssemblyLearner/)**
 2. In the repository settings (**Settings** $\to$ **Pages**), **Build and deployment $\to$ Source** is set to **GitHub Actions**.
 

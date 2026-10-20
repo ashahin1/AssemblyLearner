@@ -70,6 +70,13 @@ The IDE layout provides a comprehensive view of the underlying computer architec
 └───────────────────┴────────────────────────────────┴───────────────────┘
 ```
 
+### Code Editor Features
+* **Interactive Breakpoints:** Click any line number in the gutter to toggle a red breakpoint dot (`●`). When running your program, execution automatically pauses whenever a breakpoint is reached, allowing you to inspect registers mid-loop!
+* **Instruction Tooltips:** Hover over any instruction or register to view a quick popup showing its syntax, affected flags, textbook chapter, and programming tips.
+* **Execution Line Tracking:** A clear yellow marker (`▶`) and line highlight always indicate which instruction will execute next.
+* **Multi-Error Diagnostics Drawer:** If your program has syntax or operand errors, a scrollable footer drawer lists all errors simultaneously, detailing the exact line number, error description, and recommended fix.
+* **Classroom Font Controls:** Quick `[A-]` and `[A+]` buttons in the editor header let you adjust text size (from 12px up to 32px) for clear reading across large lecture rooms.
+
 ### Toolbar Controls
 * **Run / Pause:** Toggles continuous animated execution.
 * **Step / Restart:** Advances one instruction. When the program finishes (`exit`) or code is edited, this button automatically changes to **Restart**.
@@ -209,19 +216,25 @@ The runtime stack is an inverted memory structure that grows **downward** (from 
 2. Comments begin with a semicolon `;`.
 3. String literals must end with a null terminator `, 0` when used with `WriteString`.
 
-### Core Instruction Set
-* **Data Movement:** `MOV`, `XCHG`, `PUSH`, `POP`, `LEA`, `OFFSET`.
-* **Arithmetic:** `ADD`, `SUB`, `INC`, `DEC`, `NEG`, `MUL`, `IMUL`, `DIV`, `IDIV`.
+### Core Instruction Set & Directives
+* **Data Definition:** `BYTE`, `SBYTE`, `WORD`, `SWORD`, `DWORD`, `SDWORD`, `DUP` (supports negative numbers, constant expressions, and symbolic counts e.g., `5 DUP(-2)`).
+* **Data Movement:** `MOV`, `MOVZX`, `MOVSX`, `XCHG`, `PUSH`, `POP`, `PUSHAD`, `POPAD`, `PUSHFD`, `POPFD`, `LEA`, `OFFSET`, `PTR`.
+* **Arithmetic:** `ADD`, `SUB`, `INC`, `DEC`, `NEG`, `MUL`, `IMUL` (1, 2, and 3-operand forms with signed `OF`/`CF` flag tracking), `DIV`, `IDIV`, `CBW`, `CWD`, `CDQ`.
 * **Bitwise Logic:** `AND`, `OR`, `XOR`, `NOT`, `TEST`.
-* **Shifts & Rotates:** `SHL`, `SHR`, `SAL`, `SAR`, `ROL`, `ROR`.
+* **Shifts & Rotates:** `SHL`, `SHR`, `SAL`, `SAR`, `ROL`, `ROR` (with full `CF`, `OF`, `ZF`, `SF` diagnostic tracking).
 * **Comparisons & Conditional Jumps:**
   * `CMP op1, op2`: Subtracts `op2` from `op1`, sets flags, and discards the result.
   * `JE` / `JZ`: Jump if Equal (Zero).
   * `JNE` / `JNZ`: Jump if Not Equal.
   * Signed: `JG` (Greater), `JL` (Less), `JGE`, `JLE`.
   * Unsigned: `JA` (Above), `JB` (Below), `JAE`, `JBE`.
-* **Loops:** `LOOP target`: Decrements `ECX`; if `ECX != 0`, jumps to target.
-* **Procedures:** `CALL target`, `RET`.
+* **Loops:** `LOOP target`: Decrements `ECX`; if `ECX != 0`, jumps to target (`LOOPE`, `LOOPZ`, `LOOPNE`, `LOOPNZ` also supported).
+* **Procedures & Directives:**
+  * `PROC` and `ENDP`: Defines a procedure.
+  * `PROC USES reg1 reg2 ...`: Automatically emits `PUSH` instructions in the prologue and corresponding reverse `POP` instructions before `RET` to preserve caller registers safely!
+  * `CALL target`, `RET`: Invokes a subroutine and returns.
+  * `INVOKE`: Invokes procedures or handles program exit (`INVOKE ExitProcess, 0`).
+  * `END [label]`: Directs the assembler where program execution begins (e.g. `END main`).
 
 ---
 
@@ -231,17 +244,25 @@ The Irvine32 library (included automatically via `INCLUDE Irvine32.inc`) simplif
 
 | Procedure | Parameters / Register Usage | Description |
 | :--- | :--- | :--- |
-| **`WriteString`** | `EDX = OFFSET string` | Displays a null-terminated string to the console. |
+| **`WriteString`** | `EDX = OFFSET string` | Displays a null-terminated string to the console (safely bounded). |
 | **`WriteInt`** | `EAX = integer` | Displays a 32-bit signed integer with leading sign (`+` or `-`). |
 | **`WriteDec`** | `EAX = integer` | Displays a 32-bit unsigned decimal integer. |
 | **`WriteHex`** | `EAX = integer` | Displays a 32-bit hexadecimal number. |
 | **`WriteBin`** | `EAX = integer` | Displays a 32-bit binary number in 4-bit groups. |
 | **`WriteChar`** | `AL = ASCII character` | Displays a single ASCII character. |
 | **`Crlf`** | *(None)* | Outputs a carriage return / line feed (new line). |
+| **`Clrscr`** | *(None)* | Clears the virtual console screen. |
 | **`ReadInt`** | Returns integer in `EAX` | Prompts user for a 32-bit signed integer via keyboard. |
+| **`ReadDec`** | Returns integer in `EAX` | Prompts user for an unsigned decimal integer. |
+| **`ReadHex`** | Returns integer in `EAX` | Prompts user for a hexadecimal integer. |
+| **`ReadChar`** | Returns character in `AL` | Reads a single character from keyboard. |
 | **`ReadString`** | `EDX = OFFSET buffer`, `ECX = max size` | Prompts user for string input. |
 | **`DumpRegs`** | *(None)* | Prints a complete snapshot of all registers and status flags. |
-| **`DumpMem`** | `ESI = address`, `ECX = count`, `EBX = size` | Dumps a formatted memory block to the console. |
+| **`DumpMem`** | `ESI = address`, `ECX = count`, `EBX = size` | Dumps a formatted memory block to the console (clamped to 1/2/4 bytes, 256 units). |
+| **`GetMseconds`** | Returns milliseconds in `EAX` | Returns the number of milliseconds elapsed since midnight. |
+| **`Random32`** | Returns random 32-bit integer in `EAX` | Generates a 32-bit pseudorandom integer. |
+| **`RandomRange`** | `EAX = range limit` | Generates a random integer from `0` to `EAX - 1`. |
+| **`WaitMsg`** | *(None)* | Displays "Press any key to continue..." and waits for keyboard input. |
 
 ---
 

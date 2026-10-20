@@ -3,7 +3,7 @@
 import React from 'react';
 import { CODE_EXAMPLES } from '../examples';
 import { CodeExample } from '../engine/types';
-import { X, BookMarked } from 'lucide-react';
+import { X, BookMarked, Bug } from 'lucide-react';
 
 interface ExamplesMenuProps {
   isOpen: boolean;
@@ -14,8 +14,8 @@ interface ExamplesMenuProps {
 export const ExamplesMenu: React.FC<ExamplesMenuProps> = ({ isOpen, onClose, onSelectExample }) => {
   if (!isOpen) return null;
 
-  // Group by chapter
-  const chapters = [3, 4, 5, 6, 7];
+  // Group by chapter (3..7 are textbook chapters, 8 is Fix-the-Bug Challenges)
+  const chapters = [3, 4, 5, 6, 7, 8];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -24,7 +24,7 @@ export const ExamplesMenu: React.FC<ExamplesMenuProps> = ({ isOpen, onClose, onS
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-950">
           <div className="flex items-center gap-2 text-sky-400 font-bold text-sm">
             <BookMarked size={18} />
-            <span>Kip Irvine Textbook Examples</span>
+            <span>Kip Irvine Textbook Examples & Debugging Challenges</span>
           </div>
           <button
             onClick={onClose}
@@ -43,7 +43,14 @@ export const ExamplesMenu: React.FC<ExamplesMenuProps> = ({ isOpen, onClose, onS
             return (
               <div key={ch} className="space-y-2">
                 <div className="font-semibold text-slate-300 text-xs uppercase tracking-wider border-b border-slate-800 pb-1 flex items-center justify-between">
-                  <span>Chapter {ch}</span>
+                  {ch === 8 ? (
+                    <span className="text-amber-400 font-bold flex items-center gap-1.5 normal-case text-xs">
+                      <Bug size={14} />
+                      <span>🔧 "Fix the Bug" Interactive Debugging Challenges</span>
+                    </span>
+                  ) : (
+                    <span>Chapter {ch}</span>
+                  )}
                   <span className="text-[10px] text-slate-500 font-normal">
                     {ch === 3
                       ? 'Assembly Fundamentals'
@@ -53,7 +60,9 @@ export const ExamplesMenu: React.FC<ExamplesMenuProps> = ({ isOpen, onClose, onS
                       ? 'Procedures & The Stack'
                       : ch === 6
                       ? 'Conditional Processing'
-                      : 'Integer Arithmetic & Logic'}
+                      : ch === 7
+                      ? 'Integer Arithmetic & Logic'
+                      : 'Hands-on Debugging Labs'}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -64,9 +73,17 @@ export const ExamplesMenu: React.FC<ExamplesMenuProps> = ({ isOpen, onClose, onS
                         onSelectExample(ex);
                         onClose();
                       }}
-                      className="p-2.5 rounded-lg border border-slate-800 hover:border-sky-500/50 bg-slate-950/70 hover:bg-sky-950/20 cursor-pointer transition group"
+                      className={`p-2.5 rounded-lg border transition group cursor-pointer ${
+                        ch === 8
+                          ? 'border-amber-500/30 hover:border-amber-400 bg-amber-950/10 hover:bg-amber-950/30'
+                          : 'border-slate-800 hover:border-sky-500/50 bg-slate-950/70 hover:bg-sky-950/20'
+                      }`}
                     >
-                      <div className="font-bold text-slate-200 group-hover:text-sky-300 transition text-[12px] mb-1">
+                      <div className={`font-bold transition text-[12px] mb-1 ${
+                        ch === 8
+                          ? 'text-amber-300 group-hover:text-amber-200'
+                          : 'text-slate-200 group-hover:text-sky-300'
+                      }`}>
                         {ex.title}
                       </div>
                       <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">

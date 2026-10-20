@@ -16,6 +16,7 @@
 8. [MASM Directives & Supported Instructions](#8-masm-directives--supported-instructions)
 9. [Irvine32 Library Procedures](#9-irvine32-library-procedures)
 10. [Classroom Presentation, TV Mode & Mobile Tips](#10-classroom-presentation-tv-mode--mobile-tips)
+11. [Interactive Lecture Modules, Quizzes & Debugging Challenges](#11-interactive-lecture-modules-quizzes--debugging-challenges)
 
 ---
 
@@ -271,3 +272,51 @@ The Irvine32 library (included automatically via `INCLUDE Irvine32.inc`) simplif
 * **Classroom TV Mode (140% – 200% Zoom):** Click **TV Mode** in the header or use the zoom buttons to scale the entire interface up for classroom projectors and lecture hall displays.
 * **Mobile & Tablet Bottom Tabs:** On mobile devices, bottom tabs let you easily switch between **Code**, **Registers**, **Memory**, and **Console**. The console tab displays a notification badge when new output is printed.
 * **Restore Clean Slate (Factory Reset):** If you ever want to wipe saved browser code and restore default settings, open **Settings** (gear icon) and click **Reset All to Clean Slate** in the danger zone.
+
+---
+
+## 11. Interactive Lecture Modules, Quizzes & Debugging Challenges
+
+Beyond the Playground IDE, Assembly Studio provides dedicated lecture exploration modules accessible via the **Modules** menu, covering Chapters 1 through 7 of Kip Irvine's curriculum:
+
+### 11.1 Dedicated Chapter Exploration Modules
+* **Chapter 1: Number Systems & Data Representation**
+  * *8-Bit Interactive Bitboard:* Toggle bits to see instant live decimal, two's complement, hex, and binary conversions.
+  * *Two's Complement Negation Animator:* Step-by-step visual walk-through of the "invert bits and add 1" rule.
+  * *8-Bit Ripple-Carry Adder (`CF` vs. `OF`):* Full carry-chain bit grid demonstrating how Carry Out of MSB governs unsigned Carry Flag (`CF`), while `CarryIntoMSB ⊕ CarryOutOfMSB` sets signed Overflow Flag (`OF`). Includes classroom presets (`127 + 1`, `255 + 1`, `150 + 150`, `10 + 20`).
+* **Chapter 2: IA-32 Processor Architecture**
+  * *Nested Register Hierarchy:* Interactive visualization of `EAX` $\to$ `AX` $\to$ `AH` / `AL`.
+  * *6-Step Fetch–Decode–Execute Bus Animator:* Animated walk-through across RAM / L1 Cache, 32-bit Address/Data/Control Buses, Control Unit / EIP, and the ALU writeback stage.
+* **Chapter 3: MASM Directives & Identifiers**
+  * *MASM Program Anatomy Dissector:* Interactive code anatomy highlighting `.data`, `.code`, `PROC`/`ENDP`, and `exit`.
+  * *MASM Identifier & Literal Validator:* Real-time syntax validator catching the classic exam trap where hexadecimal literals starting with a letter (`FFh`, `A5h`) fail to assemble without a leading zero (`0FFh`, `0A5h`), plus checking reserved keywords.
+* **Chapter 4: Data Transfers & Addressing**
+  * *Little-Endian Byte Order Animator:* Visualizes how multi-byte numbers (`12345678h`) are stored in memory with the least significant byte first.
+  * *MOVZX vs. MOVSX Extension Visualizer:* Side-by-side comparison illustrating zero-extension (for unsigned values) versus sign-extension copying Bit 7 (preserving negative signed values).
+  * *Array Operator Lab (`TYPE`, `LENGTHOF`, `SIZEOF`):* Live memory layout strip illustrating byte offsets and why indexing a `DWORD` array requires `[array + 4]`, not `[array + 1]`.
+* **Chapter 5: Procedures & The Stack**
+  * *Runtime Stack Frame Visualizer:* LIFO stack column tracking `ESP` decrements and increments during `PUSH` and `POP`.
+  * *String Reversal Animator:* Step-by-step push/pop demonstration showing how characters stacked in LIFO order naturally reverse.
+  * *The Corrupted `ECX` Loop Trap (`PROC USES`):* Side-by-side execution trace demonstrating how a procedure modifying `ECX` causes an infinite loop in the caller, and how `PROC USES ecx` restores safety.
+* **Chapter 6: Conditional Processing & Jumps**
+  * *CMP Decision Matrix:* Interactive flag computation (`ZF`, `CF`, `SF`, `OF`) and conditional jump evaluations.
+  * *Bit-Masking Workbench:* Live 8-bit demonstrations of case conversion (`AND`), integer-to-ASCII conversion (`OR`), non-destructive even/odd testing (`TEST`), and symmetric XOR ciphering (`XOR`).
+  * *Finite-State Machine (FSM) Validator:* Interactive state machine (`State A`, `State B`, `State C`) verifying signed integer inputs character by character.
+* **Chapter 7: Shifts, Rotations & Integer Arithmetic**
+  * *Bit Shift Barrel:* Interactive `SHL`, `SHR`, `SAR`, `ROL`, and `ROR` operations with Carry Flag tracking and sign-preserving arithmetic right shifts (`SAR`).
+  * *32-Bit Arithmetic (MUL / IMUL & DIV / IDIV):* Unsigned and Signed toggle demonstrating the 64-bit product in `EDX:EAX` and the mandatory `CDQ` prerequisite for signed division.
+  * *16-Bit MS-DOS Date Bitfield Extractor:* Interactive extraction of Year (Bits 15–9), Month (Bits 8–5), and Day (Bits 4–0) using bit shifts and masks.
+
+### 11.2 Self-Check Review Quizzes
+Each chapter module concludes with a 4-question interactive self-check quiz (28 questions total across Chapters 1–7) featuring:
+* Instant answer verification with emerald (correct) and rose (incorrect) feedback.
+* Clear pedagogical explanations detailing why the correct answer holds according to Kip Irvine's textbook.
+* Live score tracker and reset button.
+
+### 11.3 "Fix the Bug" Interactive Debugging Challenges
+In the Playground under **Examples $\to$ 🔧 "Fix the Bug" Challenges**, students can load 5 curated buggy programs designed to simulate real exam traps:
+1. **Bug 1: Illegal Mem-to-Mem & Hex Trap (Ch 4):** Diagnose and resolve `mov val2, val1` and `FFh` missing leading zero.
+2. **Bug 2: Stepping a DWORD Array by +1 (Ch 4):** Fix an array summing loop advancing `ESI` by 1 byte instead of 4 (`TYPE array`).
+3. **Bug 3: Corrupted ECX Loop Counter (Ch 5):** Resolve a hanging infinite loop caused by an inner procedure modifying `ECX` without `PROC USES ecx`.
+4. **Bug 4: Using JA Instead of JG on Signed Numbers (Ch 6):** Fix an unsigned jump `ja` that treats negative numbers as billions, replacing it with `jg`.
+5. **Bug 5: Missing CDQ Before Signed IDIV (Ch 7):** Fix a division crash caused by clearing `EDX` with `mov edx, 0` instead of sign-extending with `cdq`.

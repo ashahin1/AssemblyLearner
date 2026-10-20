@@ -2,14 +2,75 @@
 
 import React, { useState } from 'react';
 import { OpenInPlayground } from '../shared/OpenInPlayground';
-import { ArrowLeft, RefreshCw, Calculator, Binary } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Calculator, Binary, Zap, ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ChapterQuiz, QuizQuestion } from '../shared/ChapterQuiz';
+
+const ch1Questions: QuizQuestion[] = [
+  {
+    id: 'ch1-q1',
+    question: 'What is the hexadecimal representation of the 8-bit binary value 11110110b?',
+    options: ['F6h', 'E6h', 'F5h', '76h'],
+    correctIndex: 0,
+    explanation: 'Break into 4-bit nibbles: 1111b = Fh (15), and 0110b = 6h (6). Thus 11110110b = F6h.'
+  },
+  {
+    id: 'ch1-q2',
+    question: "What is the two's complement 8-bit representation of -5?",
+    options: ['11111011b', '11111010b', '11110101b', '10000101b'],
+    correctIndex: 0,
+    explanation: "+5 is 00000101b. Step 1 (invert bits): 11111010b. Step 2 (add 1): 11111011b (or FBh = 251 unsigned = -5 signed)."
+  },
+  {
+    id: 'ch1-q3',
+    question: 'What is the representable range of an 8-bit signed (two\'s complement) integer (SBYTE)?',
+    options: ['-128 to +127', '-127 to +128', '0 to 255', '-256 to +255'],
+    correctIndex: 0,
+    explanation: 'With 8 bits, 2^8 = 256 combinations: -2^7 (-128) up to 2^7 - 1 (+127). The unsigned range is 0 to 255.'
+  },
+  {
+    id: 'ch1-q4',
+    question: 'In a signed binary number, what does the Most Significant Bit (MSB) indicate?',
+    options: [
+      'Sign bit: 1 indicates negative, 0 indicates non-negative (zero or positive)',
+      'Carry bit indicating unsigned arithmetic overflow',
+      'Parity bit checking if the total number of set bits is even',
+      'The power of 2 multiplier for the entire byte'
+    ],
+    correctIndex: 0,
+    explanation: 'The MSB (Bit 7 in an 8-bit integer, Bit 31 in a 32-bit integer) is the sign bit. If MSB=1, the value is negative in two\'s complement.'
+  }
+];
 
 export const Ch1Page: React.FC = () => {
   // 8-bit bitboard state
   const [bits, setBits] = useState<number[]>([0, 0, 0, 0, 1, 0, 1, 0]); // 00001010b = 10
   const [twosCompInput, setTwosCompInput] = useState<number>(5);
   const [twosStep, setTwosStep] = useState<number>(0);
+
+  // Widget 3: Ripple-Carry Adder state
+  const [addA, setAddA] = useState<number>(127);
+  const [addB, setAddB] = useState<number>(1);
+
+  // Ripple-Carry Math
+  const a8 = (addA & 0xff) >>> 0;
+  const b8 = (addB & 0xff) >>> 0;
+  const carries: number[] = new Array(9).fill(0);
+  const sumBits: number[] = new Array(8).fill(0);
+
+  for (let bit = 0; bit < 8; bit++) {
+    const bitA = (a8 >> bit) & 1;
+    const bitB = (b8 >> bit) & 1;
+    const cIn = carries[bit];
+    sumBits[bit] = bitA ^ bitB ^ cIn;
+    carries[bit + 1] = (bitA & bitB) | (cIn & (bitA ^ bitB));
+  }
+
+  const cfOut = carries[8]; // Carry out of Bit 7
+  const cIntoMsb = carries[7]; // Carry into Bit 7
+  const ofOut = cIntoMsb ^ cfOut; // OF = CarryIntoMSB ^ CarryOutOfMSB
+  const sumUnsigned = (a8 + b8) & 0xff;
+  const sumSigned = sumUnsigned > 127 ? sumUnsigned - 256 : sumUnsigned;
 
   // Computed values from bitboard
   const unsignedVal = bits.reduce((acc, bit, idx) => acc + (bit ? Math.pow(2, 7 - idx) : 0), 0);
@@ -225,6 +286,201 @@ END main
           </button>
         </div>
       </div>
+
+      {/* Widget 3: 8-Bit Binary Ripple-Carry Adder (CF vs OF Detector) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-2">
+          <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+            <Zap size={18} />
+            <span>8-Bit Ripple-Carry Adder (CF vs. OF Detection)</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-slate-400">Presets:</span>
+            <button
+              onClick={() => { setAddA(127); setAddB(1); }}
+              className="px-2 py-1 text-[11px] font-mono bg-slate-800 hover:bg-slate-700 text-rose-300 rounded border border-slate-700"
+              title="127 + 1 = 128 (Signed overflow OF=1, CF=0)"
+            >
+              127 + 1 (OF=1, CF=0)
+            </button>
+            <button
+              onClick={() => { setAddA(255); setAddB(1); }}
+              className="px-2 py-1 text-[11px] font-mono bg-slate-800 hover:bg-slate-700 text-amber-300 rounded border border-slate-700"
+              title="255 + 1 = 256 (Unsigned carry CF=1, OF=0)"
+            >
+              255 + 1 (CF=1, OF=0)
+            </button>
+            <button
+              onClick={() => { setAddA(150); setAddB(150); }}
+              className="px-2 py-1 text-[11px] font-mono bg-slate-800 hover:bg-slate-700 text-purple-300 rounded border border-slate-700"
+              title="150 + 150 = 300 (Both CF=1 and OF=1)"
+            >
+              150 + 150 (CF=1, OF=1)
+            </button>
+            <button
+              onClick={() => { setAddA(10); setAddB(20); }}
+              className="px-2 py-1 text-[11px] font-mono bg-slate-800 hover:bg-slate-700 text-emerald-300 rounded border border-slate-700"
+              title="10 + 20 = 30 (Normal: CF=0, OF=0)"
+            >
+              10 + 20 (Normal)
+            </button>
+          </div>
+        </div>
+
+        {/* Inputs */}
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-950 p-3 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 font-mono">Operand A (0–255):</label>
+            <input
+              type="number"
+              min="0"
+              max="255"
+              value={addA}
+              onChange={(e) => setAddA(Math.min(255, Math.max(0, parseInt(e.target.value) || 0)))}
+              className="w-20 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-sky-400 font-mono text-sm text-center"
+            />
+            <span className="text-xs text-slate-500 font-mono">({a8.toString(16).toUpperCase().padStart(2, '0')}h)</span>
+          </div>
+          <span className="text-slate-600 font-bold">+</span>
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 font-mono">Operand B (0–255):</label>
+            <input
+              type="number"
+              min="0"
+              max="255"
+              value={addB}
+              onChange={(e) => setAddB(Math.min(255, Math.max(0, parseInt(e.target.value) || 0)))}
+              className="w-20 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-indigo-400 font-mono text-sm text-center"
+            />
+            <span className="text-xs text-slate-500 font-mono">({b8.toString(16).toUpperCase().padStart(2, '0')}h)</span>
+          </div>
+        </div>
+
+        {/* Ripple Adder Bit Grid */}
+        <div className="overflow-x-auto">
+          <div className="min-w-[500px] p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-2 font-mono text-xs">
+            {/* Carry Row */}
+            <div className="flex items-center gap-1.5 pb-1 border-b border-slate-800">
+              <span className="w-24 text-[11px] text-amber-400 font-semibold">Carry Bits:</span>
+              <div className="flex items-center gap-2">
+                <span className={`w-8 text-center text-xs font-bold px-1 py-0.5 rounded ${cfOut ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-slate-600'}`} title="Carry out of MSB (Bit 7)">
+                  {cfOut}
+                </span>
+                {[7, 6, 5, 4, 3, 2, 1, 0].map((bit) => (
+                  <span
+                    key={bit}
+                    className={`w-9 text-center text-xs font-mono py-0.5 rounded ${
+                      carries[bit] ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold' : 'text-slate-700'
+                    }`}
+                  >
+                    {carries[bit]}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Operand A Row */}
+            <div className="flex items-center gap-1.5">
+              <span className="w-24 text-[11px] text-sky-400 font-semibold">Operand A:</span>
+              <div className="flex items-center gap-2">
+                <span className="w-8 text-center text-slate-700">·</span>
+                {[7, 6, 5, 4, 3, 2, 1, 0].map((bit) => (
+                  <span
+                    key={bit}
+                    className="w-9 text-center text-sm py-1 rounded bg-slate-900 border border-slate-800 text-sky-300 font-bold"
+                  >
+                    {(a8 >> bit) & 1}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Operand B Row */}
+            <div className="flex items-center gap-1.5 pb-2 border-b-2 border-slate-700">
+              <span className="w-24 text-[11px] text-indigo-400 font-semibold">+ Operand B:</span>
+              <div className="flex items-center gap-2">
+                <span className="w-8 text-center text-slate-700">·</span>
+                {[7, 6, 5, 4, 3, 2, 1, 0].map((bit) => (
+                  <span
+                    key={bit}
+                    className="w-9 text-center text-sm py-1 rounded bg-slate-900 border border-slate-800 text-indigo-300 font-bold"
+                  >
+                    {(b8 >> bit) & 1}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Sum Row */}
+            <div className="flex items-center gap-1.5 pt-1">
+              <span className="w-24 text-[11px] text-emerald-400 font-semibold">= Sum (8-bit):</span>
+              <div className="flex items-center gap-2">
+                <span className={`w-8 text-center text-xs font-bold py-1 rounded ${cfOut ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50' : 'text-slate-700'}`}>
+                  {cfOut ? 'CF=1' : '·'}
+                </span>
+                {[7, 6, 5, 4, 3, 2, 1, 0].map((bit) => (
+                  <span
+                    key={bit}
+                    className="w-9 text-center text-sm py-1 rounded bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 font-bold"
+                  >
+                    {sumBits[bit]}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Flag Diagnostic Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+          {/* CF Card */}
+          <div className={`p-3.5 rounded-lg border font-mono text-xs space-y-1.5 ${
+            cfOut
+              ? 'bg-amber-950/30 border-amber-500/40 text-amber-200'
+              : 'bg-slate-950 border-slate-800 text-slate-300'
+          }`}>
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-sm flex items-center gap-1.5">
+                <span className={cfOut ? 'text-amber-400' : 'text-slate-500'}>Carry Flag (CF):</span>
+                <span className={`px-2 py-0.5 rounded text-xs ${cfOut ? 'bg-amber-500/20 text-amber-300 font-bold' : 'bg-slate-800 text-slate-400'}`}>
+                  {cfOut}
+                </span>
+              </span>
+              <span className="text-[10px] text-slate-400">Unsigned Overflow</span>
+            </div>
+            <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+              {cfOut === 1
+                ? `CF = 1 because the unsigned sum (${a8 + b8}) exceeded the 8-bit maximum (255). The carry out of Bit 7 is 1.`
+                : `CF = 0 because the unsigned sum (${a8 + b8}) fits within 8 bits (≤ 255). No carry generated.`}
+            </p>
+          </div>
+
+          {/* OF Card */}
+          <div className={`p-3.5 rounded-lg border font-mono text-xs space-y-1.5 ${
+            ofOut
+              ? 'bg-rose-950/30 border-rose-500/40 text-rose-200'
+              : 'bg-slate-950 border-slate-800 text-slate-300'
+          }`}>
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-sm flex items-center gap-1.5">
+                <span className={ofOut ? 'text-rose-400' : 'text-slate-500'}>Overflow Flag (OF):</span>
+                <span className={`px-2 py-0.5 rounded text-xs ${ofOut ? 'bg-rose-500/20 text-rose-300 font-bold' : 'bg-slate-800 text-slate-400'}`}>
+                  {ofOut}
+                </span>
+              </span>
+              <span className="text-[10px] text-slate-400">Signed Overflow</span>
+            </div>
+            <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+              {ofOut === 1
+                ? `OF = 1! Formula: CarryIntoMSB (${cIntoMsb}) ⊕ CarryOutOfMSB (${cfOut}) = 1. The signed result wrapped outside [-128, +127] (stored as ${sumSigned}).`
+                : `OF = 0. Formula: CarryIntoMSB (${cIntoMsb}) ⊕ CarryOutOfMSB (${cfOut}) = 0. Signed addition is mathematically correct (${sumSigned}).`}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Chapter 1 Quiz */}
+      <ChapterQuiz chapter={1} questions={ch1Questions} />
     </div>
   );
 };

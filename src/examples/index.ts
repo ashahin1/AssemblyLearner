@@ -266,4 +266,165 @@ main ENDP
 END main
 `,
   },
+
+  // --- Chapter 8: "Fix the Bug" Debugging Challenges ---
+  {
+    id: 'bug-ch4-mem-to-mem',
+    title: 'Bug 1: Illegal Mem-to-Mem & Hex Trap (Ch 4)',
+    chapter: 8,
+    description: 'Fix two common MASM bugs: illegal direct memory-to-memory transfer and a hex literal missing a leading zero.',
+    code: `INCLUDE Irvine32.inc
+
+.data
+    val1 DWORD 100
+    val2 DWORD ?
+
+.code
+main PROC
+    ; ❌ BUG 1: In x86, you cannot move memory directly to memory!
+    ; Task: Fix this line by using an intermediate register (e.g. EAX).
+    mov val2, val1
+
+    ; ❌ BUG 2: MASM hex literals starting with a letter must begin with a 0!
+    ; Task: Fix "FFh" to valid MASM syntax (0FFh).
+    mov eax, FFh
+
+    call DumpRegs
+    exit
+main ENDP
+END main
+`,
+  },
+  {
+    id: 'bug-ch4-dword-offset',
+    title: 'Bug 2: Stepping a DWORD Array by +1 (Ch 4)',
+    chapter: 8,
+    description: 'Fix the array pointer increment: stepping a 4-byte DWORD array by 1 byte causes corrupt little-endian reads.',
+    code: `INCLUDE Irvine32.inc
+
+.data
+    array DWORD 10, 20, 30, 40, 50
+    total DWORD 0
+
+.code
+main PROC
+    mov esi, OFFSET array
+    mov ecx, 5
+    mov eax, 0
+
+SumLoop:
+    add eax, [esi]
+
+    ; ❌ BUG: "add esi, 1" only advances the pointer by 1 byte,
+    ; but each DWORD element occupies 4 bytes!
+    ; Task: Change "1" to "4" (or "TYPE array").
+    add esi, 1
+
+    loop SumLoop
+
+    ; Expected total: 10 + 20 + 30 + 40 + 50 = 150
+    mov total, eax
+    call WriteInt
+    call Crlf
+    exit
+main ENDP
+END main
+`,
+  },
+  {
+    id: 'bug-ch5-corrupted-ecx',
+    title: 'Bug 3: Corrupted ECX Loop Counter (Ch 5)',
+    chapter: 8,
+    description: 'Fix an infinite loop caused by a subroutine destroying the caller\'s ECX loop counter without USES.',
+    code: `INCLUDE Irvine32.inc
+
+.code
+main PROC
+    mov ecx, 3          ; We want outer loop to repeat 3 times
+
+OuterLoop:
+    call InnerProc      ; ❌ Subroutine destroys ECX!
+    loop OuterLoop      ; Bug: ECX is 0, decrements to FFFFFFFFh!
+
+    exit
+main ENDP
+
+; ❌ BUG: InnerProc modifies ECX without preserving the caller's value!
+; Task: Add "USES ecx" to the procedure declaration:
+;       InnerProc PROC USES ecx
+InnerProc PROC
+    mov ecx, 5
+L2:
+    loop L2             ; ECX decrements to 0
+    ret
+InnerProc ENDP
+
+END main
+`,
+  },
+  {
+    id: 'bug-ch6-signed-vs-unsigned',
+    title: 'Bug 4: Using JA Instead of JG on Signed Numbers (Ch 6)',
+    chapter: 8,
+    description: 'Fix a logic bug where an unsigned jump (JA) treats negative signed numbers as billions.',
+    code: `INCLUDE Irvine32.inc
+
+.data
+    num1 SDWORD -5
+    num2 SDWORD 10
+    msgNegativeLarger BYTE "ERROR: -5 was detected as greater than 10!", 0
+    msgCorrect        BYTE "SUCCESS: 10 is greater than -5.", 0
+
+.code
+main PROC
+    mov eax, num1       ; EAX = -5 (FFFFFFFBh)
+    cmp eax, num2       ; Compare -5 with 10
+
+    ; ❌ BUG: "ja" is an UNSIGNED jump (Jump if Above).
+    ; It treats -5 as 4,294,967,291 unsigned, falsely jumping to BugBranch!
+    ; Task: Replace "ja" with the signed jump "jg" (Jump if Greater).
+    ja BugBranch
+
+    mov edx, OFFSET msgCorrect
+    call WriteString
+    call Crlf
+    jmp Done
+
+BugBranch:
+    mov edx, OFFSET msgNegativeLarger
+    call WriteString
+    call Crlf
+
+Done:
+    exit
+main ENDP
+END main
+`,
+  },
+  {
+    id: 'bug-ch7-missing-cdq',
+    title: 'Bug 5: Missing CDQ Before Signed IDIV (Ch 7)',
+    chapter: 8,
+    description: 'Fix a division crash/error caused by zeroing EDX instead of sign-extending with CDQ before IDIV.',
+    code: `INCLUDE Irvine32.inc
+
+.code
+main PROC
+    mov eax, -100       ; Dividend = -100
+    mov ebx, 5          ; Divisor = 5
+
+    ; ❌ BUG: "mov edx, 0" zero-extends the dividend instead of sign-extending it!
+    ; For signed division (IDIV), EDX must contain FFFFFFFFh (-1).
+    ; Task: Replace "mov edx, 0" with the "cdq" instruction.
+    mov edx, 0
+
+    idiv ebx            ; Expected quotient in EAX: -20
+
+    call WriteInt       ; Display quotient in EAX
+    call Crlf
+    exit
+main ENDP
+END main
+`,
+  },
 ];

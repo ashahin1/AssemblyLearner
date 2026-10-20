@@ -34,14 +34,16 @@
   - **LocalStorage Autosave:** Automatically preserves student work and preferences across browser sessions.
   - **Global Error Boundary:** Safeguards against unhandled exceptions with self-healing reload and reset options.
 
-- **7 Interactive Lecture Modules:**
-  - **Chapter 1:** Interactive 8-bit Bitboard, Two's Complement Negation Animator, and Base Converter.
-  - **Chapter 2:** IA-32 Architecture Hierarchy, Nested Register Explorer, and Register Taxonomy.
-  - **Chapter 3:** MASM Program Anatomy Dissector (`.data`, `.code`, `PROC`/`ENDP`, `exit`), and Data Types (`BYTE`, `WORD`, `DWORD`, `DUP`).
-  - **Chapter 4:** Little-Endian Byte Order Animator, Indirect Memory Addressing `[ESI]`, and MOV Restriction Checker.
-  - **Chapter 5:** Dynamic Call Stack Simulator (`PUSH`/`POP`), and Procedure Frame Walkthrough (`CALL`/`RET`).
-  - **Chapter 6:** CMP Internal Subtraction Calculator, Jump Decision Matrix (`JA`, `JB`, `JG`, `JL`, `JE`, `JNE`), and Signed vs. Unsigned comparisons.
-  - **Chapter 7:** Bitwise Shift & Rotate Barrel (`SHL`, `SHR`, `ROL`, `ROR`) with Carry Flag, and 32-bit `MUL` / `DIV` register pairs (`EDX:EAX`).
+- **7 Interactive Lecture Modules with End-of-Chapter Self-Check Quizzes:**
+  - **Chapter 1:** Interactive 8-bit Bitboard, Two's Complement Negation Animator, 8-Bit Ripple-Carry Adder (`CF` vs `OF` detector), and Ch 1 Quick-Check Quiz.
+  - **Chapter 2:** IA-32 Architecture Hierarchy, Nested Register Explorer, 6-Step Fetch–Decode–Execute Bus Animator, and Ch 2 Quick-Check Quiz.
+  - **Chapter 3:** MASM Program Anatomy Dissector, MASM Identifier & Hex Literal Validator (Leading-Zero Rule), and Ch 3 Quick-Check Quiz.
+  - **Chapter 4:** Little-Endian Byte Order Animator, `MOVZX` vs `MOVSX` Extension Visualizer, `TYPE` / `LENGTHOF` / `SIZEOF` Array Lab, and Ch 4 Quick-Check Quiz.
+  - **Chapter 5:** Dynamic Call Stack Simulator (`PUSH`/`POP`), String Reversal Stack Animator, `PROC USES` Corrupted `ECX` Safety Demo, and Ch 5 Quick-Check Quiz.
+  - **Chapter 6:** CMP Internal Subtraction Calculator, Bit-Masking Workbench (`AND`, `OR`, `XOR`, `TEST`), Finite-State Machine (FSM) Signed Integer Parser, and Ch 6 Quick-Check Quiz.
+  - **Chapter 7:** Bitwise Shift & Rotate Barrel (`SHL`, `SHR`, `SAR`, `ROL`, `ROR`), Signed `IMUL` / `CDQ` + `IDIV` Arithmetic, 16-Bit MS-DOS File Date Bitfield Extractor, and Ch 7 Quick-Check Quiz.
+- **5 "Fix the Bug" Interactive Debugging Challenges:**
+  - Curated, hands-on debugging challenges directly accessible in the Playground under the Examples menu (`🔧 Fix-the-Bug Challenges`) to train students on classic Kip Irvine exam pitfalls (Illegal mem-to-mem, missing hex leading zero, stepping DWORD by +1, corrupted ECX loop counter, unsigned `JA` on negative numbers, and missing `CDQ` before `IDIV`).
 
 ---
 
@@ -60,7 +62,7 @@ npm install
 # Run Vite dev server with Hot Module Replacement
 npm run dev
 
-# Run Vitest test suite (all 38 automated unit & integration tests)
+# Run Vitest test suite (all 44 automated unit & integration tests)
 npm test
 
 # Build single-file bundle and distribution package

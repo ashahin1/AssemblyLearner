@@ -9,7 +9,6 @@ import { HistoryManager } from '../../src/engine/history';
 import { ProgramRunner } from '../../src/engine/runner';
 import { Irvine32Runtime } from '../../src/engine/irvine32';
 import { MEMORY_LAYOUT } from '../../src/engine/constants';
-import { useCPUStore } from '../../src/store/cpuStore';
 
 describe('Mitigation Plan Verification Tests', () => {
   it('Issue #2 & #5: Step backward after exit unhalts runner and restores state', async () => {

@@ -237,6 +237,14 @@ The runtime stack is an inverted memory structure that grows **downward** (from 
   * `INVOKE`: Invokes procedures or handles program exit (`INVOKE ExitProcess, 0`).
   * `END [label]`: Directs the assembler where program execution begins (e.g. `END main`).
 
+### Memory Addressing Modes & Operand Size Inference
+* **Supported Addressing Forms:**
+  * **Direct & Direct-Offset:** `mov eax, myVar`, `mov al, arrayB + 2`
+  * **Register Indirect & Base-Displacement:** `mov ax, [esi]`, `mov eax, [ebp - 4]`, `mov ecx, 4[esi]`
+  * **Base-Index & Scaled-Index:** `mov eax, [ebx + esi]`, `mov eax, arrayD[esi * 4]`, `mov dx, table[ebx][esi * TYPE table]`
+* **Automatic Operand Size Inference:** When one operand is a register (`al`, `ax`, `eax`, etc.) and the other is an untyped indirect memory reference (`[esi]`, `[ebx + 4]`), MASM automatically infers the transfer width (`1`, `2`, or `4` bytes) from the register — so `mov esi, OFFSET var1` followed by `mov ax, [esi]` reads a 16-bit `WORD`.
+* **When `PTR` Is Required:** If an instruction has no register operand (e.g., `inc WORD PTR [esi]`, `mov DWORD PTR [esi], 10`, `shl BYTE PTR [esi], cl`) or uses `MOVZX`/`MOVSX` with a 32-bit destination (`movzx eax, BYTE PTR [esi]`), you must specify `BYTE PTR`, `WORD PTR`, or `DWORD PTR` (or signed `SBYTE`/`SWORD`/`SDWORD PTR`) to resolve the operand size.
+
 ---
 
 ## 9. Irvine32 Library Procedures

@@ -396,9 +396,9 @@ END main`}
                 <h4 className="text-sm font-bold text-amber-400 mb-2">2. Supported Assembly Instructions</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                   <div className="bg-slate-800/60 p-3 rounded border border-slate-700/60 space-y-1">
-                    <span className="font-bold text-sky-300">Data Transfer:</span>
-                    <p className="font-mono text-[11px] text-slate-300">MOV, XCHG, PUSH, POP, LEA</p>
-                    <p className="text-slate-400 text-[11px]">Copies values between registers and memory. Cannot move memory to memory directly.</p>
+                    <span className="font-bold text-sky-300">Data Transfer &amp; Addressing:</span>
+                    <p className="font-mono text-[11px] text-slate-300">MOV, MOVZX, MOVSX, XCHG, PUSH, POP, LEA, PTR</p>
+                    <p className="text-slate-400 text-[11px]">Supports indirect (<code className="text-sky-300">[esi]</code>) with automatic size inference and scaled-index (<code className="text-sky-300">arr[esi * TYPE arr]</code>) addressing.</p>
                   </div>
                   <div className="bg-slate-800/60 p-3 rounded border border-slate-700/60 space-y-1">
                     <span className="font-bold text-emerald-300">Arithmetic:</span>
@@ -422,8 +422,8 @@ END main`}
                   </div>
                   <div className="bg-slate-800/60 p-3 rounded border border-slate-700/60 space-y-1">
                     <span className="font-bold text-amber-300">Loops &amp; Procedures:</span>
-                    <p className="font-mono text-[11px] text-slate-300">LOOP, LOOPE, LOOPNE, CALL, RET</p>
-                    <p className="text-slate-400 text-[11px]">LOOP automatically decrements ECX and jumps if ECX != 0.</p>
+                    <p className="font-mono text-[11px] text-slate-300">LOOP, LOOPE, LOOPNE, CALL, RET, PROC USES</p>
+                    <p className="text-slate-400 text-[11px]">LOOP decrements ECX and jumps if ECX != 0; USES preserves caller registers automatically.</p>
                   </div>
                 </div>
               </div>

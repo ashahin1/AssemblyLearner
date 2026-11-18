@@ -2,6 +2,8 @@
 
 import { Flags, FlagDiagnostic } from './types';
 
+const DEFAULT_FLAGS: Flags = { CF: 0, PF: 0, AF: 0, ZF: 0, SF: 0, OF: 0, DF: 0 };
+
 export class FlagEngine {
   /**
    * Computes Parity Flag: 1 if lowest 8 bits of result contain even number of 1s, else 0.
@@ -23,7 +25,7 @@ export class FlagEngine {
     dest: number,
     src: number,
     size: 1 | 2 | 4,
-    oldFlags: Flags
+    oldFlags: Flags = DEFAULT_FLAGS
   ): { flags: Flags; diagnostics: FlagDiagnostic[] } {
     const mask = size === 1 ? 0xff : size === 2 ? 0xffff : 0xffffffff;
     const signBit = size === 1 ? 0x80 : size === 2 ? 0x8000 : 0x80000000;
@@ -75,7 +77,7 @@ export class FlagEngine {
     dest: number,
     src: number,
     size: 1 | 2 | 4,
-    oldFlags: Flags,
+    oldFlags: Flags = DEFAULT_FLAGS,
     isCmp: boolean = false,
     opNameOverride?: string
   ): { flags: Flags; diagnostics: FlagDiagnostic[] } {
@@ -129,7 +131,7 @@ export class FlagEngine {
     dest: number,
     isInc: boolean,
     size: 1 | 2 | 4,
-    oldFlags: Flags
+    oldFlags: Flags = DEFAULT_FLAGS
   ): { flags: Flags; diagnostics: FlagDiagnostic[] } {
     const mask = size === 1 ? 0xff : size === 2 ? 0xffff : 0xffffffff;
     const signBit = size === 1 ? 0x80 : size === 2 ? 0x8000 : 0x80000000;
@@ -178,8 +180,8 @@ export class FlagEngine {
   static computeLogicFlags(
     result: number,
     size: 1 | 2 | 4,
-    oldFlags: Flags,
-    opName: string
+    oldFlags: Flags = DEFAULT_FLAGS,
+    opName: string = 'LOGIC'
   ): { flags: Flags; diagnostics: FlagDiagnostic[] } {
     const mask = size === 1 ? 0xff : size === 2 ? 0xffff : 0xffffffff;
     const signBit = size === 1 ? 0x80 : size === 2 ? 0x8000 : 0x80000000;

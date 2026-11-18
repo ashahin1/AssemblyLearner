@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { OpenInPlayground } from '../shared/OpenInPlayground';
-import { ArrowLeft, Binary, HelpCircle, Check, X, Layers, Calculator } from 'lucide-react';
+import { ArrowLeft, Binary, HelpCircle, Check, X, Calculator } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ChapterQuiz, QuizQuestion } from '../shared/ChapterQuiz';
 

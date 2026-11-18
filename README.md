@@ -29,6 +29,7 @@
   - **Full Undo / Time-Travel Scrubber:** Step-forward and **Step-backward** timeline scrubber with full undo-log snapshots (reversing CPU state, memory, and console output seamlessly).
   - **Virtual Irvine32 CRT Console:** Supports standard I/O library procedures (`WriteString`, `WriteInt`, `WriteDec`, `WriteHex`, `WriteBin`, `WriteChar`, `Crlf`, `Clrscr`, `DumpRegs`, `DumpMem`, `GetMseconds`, `Random32`, `WaitMsg`) and non-blocking asynchronous user input (`ReadInt`, `ReadDec`, `ReadHex`, `ReadChar`, `ReadString`).
   - **Advanced MASM Directives:** Supports `PROC USES` (automatic register preservation), `INVOKE`, negative initializers (`SDWORD -15`), expressions, and symbolic `DUP` counts.
+  - **Full x86 MASM Addressing & Size Inference:** Supports Direct, Direct-Offset, Register Indirect (`[esi]`, `[ebp - 4]`), Base-Index (`[ebx + esi]`), and Scaled-Index (`array[esi * TYPE array]`) addressing, automatic register-to-memory operand size inference (`mov ax, [esi]`, `mov [esi], al`), and `BYTE`/`SBYTE`/`WORD`/`SWORD`/`DWORD`/`SDWORD` `PTR` overrides.
   - **Direct Font Size Controls:** Instant `[A-]` and `[A+]` buttons in the editor header (12px to 32px).
   - **Share-by-URL:** Compresses student code into a shareable link via LZ-String so students can send code directly to their instructor.
   - **LocalStorage Autosave:** Automatically preserves student work and preferences across browser sessions.
@@ -62,7 +63,7 @@ npm install
 # Run Vite dev server with Hot Module Replacement
 npm run dev
 
-# Run Vitest test suite (all 44 automated unit & integration tests)
+# Run Vitest test suite (all 53 automated unit & integration tests across 9 test suites)
 npm test
 
 # Build single-file bundle and distribution package
@@ -119,7 +120,7 @@ The repository is pre-configured for continuous hosting and automated deployment
 
 ### Method A: Automated GitHub Actions (Active)
 The repository includes [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml):
-1. Whenever commits are pushed to `main`, GitHub Actions automatically runs all 38 unit and integration tests, compiles the production bundle, and deploys directly to:
+1. Whenever commits are pushed to `main`, GitHub Actions automatically runs all 53 unit and integration tests across 9 test suites, compiles the production bundle, and deploys directly to:
    **[https://ashahin1.github.io/AssemblyLearner/](https://ashahin1.github.io/AssemblyLearner/)**
 2. In the repository settings (**Settings** $\to$ **Pages**), **Build and deployment $\to$ Source** is set to **GitHub Actions**.
 
@@ -159,13 +160,13 @@ For campus lab PCs:
 
 | Chapter | Topic in Kip Irvine (7th Ed.) | Studio Component |
 | :--- | :--- | :--- |
-| **Ch 1** | Basic Concepts & Number Systems | Module 1 (Bitboard, Two's Complement, Radix Converter) |
-| **Ch 2** | x86 Processor Architecture | Module 2 (Register Nesting, EFLAGS, Architecture Hierarchy) |
-| **Ch 3** | Assembly Language Fundamentals | Module 3 (Code Dissector, Data Definitions, Directives) |
-| **Ch 4** | Data Transfers, Addressing & Arithmetic | Module 4 (Little-Endian, MOV/XCHG, PTR/OFFSET, ADD/SUB/CMP) |
-| **Ch 5** | Procedures & The Stack | Module 5 (Stack Animator, PUSH/POP, CALL/RET, Local Frames) |
-| **Ch 6** | Conditional Processing | Module 6 (CMP & Jcc Decision Matrix, Signed vs Unsigned, LOOP) |
-| **Ch 7** | Integer Arithmetic & Shifts | Module 7 (Shift & Rotate Barrel, MUL/DIV EDX:EAX, CBW/CWD/CDQ) |
+| **Ch 1** | Basic Concepts & Number Systems | Module 1 (Bitboard, Two's Complement, Ripple-Carry Adder CF/OF, Quiz) |
+| **Ch 2** | x86 Processor Architecture | Module 2 (Register Nesting, Fetch-Decode-Execute Bus Animator, Quiz) |
+| **Ch 3** | Assembly Language Fundamentals | Module 3 (Code Dissector, MASM Token & Hex Trap Validator, Quiz) |
+| **Ch 4** | Data Transfers, Addressing & Arithmetic | Module 4 (Little-Endian, MOVZX/MOVSX, Array Operator Lab, Quiz) |
+| **Ch 5** | Procedures & The Stack | Module 5 (Stack Animator, String Reversal, PROC USES Bug Demo, Quiz) |
+| **Ch 6** | Conditional Processing | Module 6 (CMP & Jcc Matrix, Bit-Masking Workbench, FSM Parser, Quiz) |
+| **Ch 7** | Integer Arithmetic & Shifts | Module 7 (Shift/SAR Barrel, MUL/IMUL/CDQ+IDIV, MS-DOS Date Bitfield, Quiz) |
 
 ---
 

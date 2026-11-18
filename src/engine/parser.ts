@@ -566,10 +566,8 @@ export class Parser {
     }
 
     // 3. String literal operand: 'A'
-    if (tokens.length === 1 && tokens[0].type === TokenType.STRING) {
-      if (tokens[0].value.length === 1) {
-        return { kind: 'immediate', immediate: tokens[0].value.charCodeAt(0), size: 1 };
-      }
+    if (tokens.length === 1 && tokens[0].type === TokenType.STRING && tokens[0].value.length === 1) {
+      return { kind: 'immediate', immediate: tokens[0].value.charCodeAt(0) };
     }
 
     // 4. OFFSET varName
@@ -581,87 +579,59 @@ export class Parser {
         const suggestion = closest ? `Did you mean '${closest}'?` : undefined;
         throw new Error(`Undefined variable '${tokens[1].value}' in OFFSET. ${suggestion ?? ''}`);
       }
-      return { kind: 'immediate', immediate: sym.address, size: 4 };
+      return { kind: 'immediate', immediate: sym.address };
     }
 
-    // 5. Memory with PTR: BYTE PTR [esi], DWORD PTR myVar
+    // 5. PTR Prefix Extraction: e.g. BYTE PTR [esi], WORD PTR var1, or [BYTE PTR esi]
     let ptrSize: 1 | 2 | 4 | undefined;
     let remainingTokens = tokens;
 
     if (tokens.length >= 3 && tokens[1].value.toLowerCase() === 'ptr') {
-      const sizeWord = tokens[0].value.toLowerCase();
-      if (sizeWord === 'byte') ptrSize = 1;
-      else if (sizeWord === 'word') ptrSize = 2;
-      else if (sizeWord === 'dword') ptrSize = 4;
+      ptrSize = this.resolvePtrSize(tokens[0], line);
       remainingTokens = tokens.slice(2);
     }
 
-    // 6. Bracketed memory: [esi], [esi + 4], [ebx + esi * 4]
-    if (remainingTokens[0].type === TokenType.LBRACKET) {
-      const memTokens = remainingTokens.slice(1, -1);
-      return this.parseBracketedMemory(memTokens, ptrSize, line);
-    }
-
-    // 7. Direct Variable Access: myVar or myVar[esi] or myVar + 4
-    const firstTok = remainingTokens[0];
-    const sym = this.symbols.get(firstTok.value.toLowerCase());
-
-    if (sym && sym.kind === 'variable') {
-      let displacement = sym.address;
-      let indexReg: string | undefined;
-
-      // Variable with index: myVar[esi * 4] or myVar + 4
-      if (remainingTokens.length > 1) {
-        if (remainingTokens[1].type === TokenType.LBRACKET) {
-          const inner = remainingTokens.slice(2, -1);
-          const memOp = this.parseBracketedMemory(inner, ptrSize ?? (sym.dataType as 1 | 2 | 4), line);
-          return {
-            ...memOp,
-            displacement: ((memOp.displacement ?? 0) + sym.address) >>> 0,
-            symbolRef: sym.name,
-            size: ptrSize ?? (sym.dataType as 1 | 2 | 4) ?? 4,
-            ptrSize,
-          };
-        } else if (remainingTokens[1].type === TokenType.PLUS || remainingTokens[1].type === TokenType.MINUS) {
-          const exprToks = remainingTokens.slice(2);
-          try {
-            const evalRes = ExpressionEvaluator.evaluate(
-              exprToks.map((t) => t.value),
-              this.symbols
-            );
-            const delta = remainingTokens[1].type === TokenType.PLUS ? evalRes.value : -evalRes.value;
-            displacement = (displacement + delta) >>> 0;
-          } catch {
-            if (remainingTokens[2]?.type === TokenType.NUMBER) {
-              const delta = remainingTokens[1].type === TokenType.PLUS
-                ? (remainingTokens[2].numericValue ?? 0)
-                : -(remainingTokens[2].numericValue ?? 0);
-              displacement = (displacement + delta) >>> 0;
-            }
-          }
-        }
+    if (
+      remainingTokens[0]?.type === TokenType.LBRACKET &&
+      remainingTokens.length >= 4 &&
+      remainingTokens[2].value.toLowerCase() === 'ptr'
+    ) {
+      if (ptrSize !== undefined) {
+        throw new Error(`Line ${line}: Duplicate PTR size specifier in memory operand`);
       }
-
-      return {
-        kind: 'memory',
-        displacement,
-        indexReg,
-        symbolRef: sym.name,
-        size: ptrSize ?? (sym.dataType as 1 | 2 | 4) ?? 4,
-        ptrSize,
-      };
+      ptrSize = this.resolvePtrSize(remainingTokens[1], line);
+      remainingTokens = [remainingTokens[0], ...remainingTokens.slice(3)];
     }
 
-    // 8. Label reference for JMP / CALL
+    // 6. Memory Operand Detection
+    const isMemoryOperand =
+      ptrSize !== undefined ||
+      remainingTokens.some((t) => t.type === TokenType.LBRACKET || t.type === TokenType.RBRACKET) ||
+      remainingTokens.some((t, idx) => {
+        if (t.type !== TokenType.IDENTIFIER) return false;
+        const sym = this.symbols.get(t.value.toLowerCase());
+        if (!sym || sym.kind !== 'variable') return false;
+        const prev = idx > 0 ? remainingTokens[idx - 1].value.toLowerCase() : '';
+        return !['offset', 'type', 'lengthof', 'sizeof'].includes(prev);
+      });
+
+    if (isMemoryOperand) {
+      return this.parseMemoryOperand(remainingTokens, ptrSize, line);
+    }
+
+    // 7. Label reference for JMP / CALL (excluding constants)
     if (tokens.length === 1 && (tokens[0].type === TokenType.IDENTIFIER || tokens[0].type === TokenType.INSTRUCTION)) {
       const labelName = tokens[0].value.toLowerCase();
-      return {
-        kind: 'label',
-        symbolRef: labelName,
-      };
+      const sym = this.symbols.get(labelName);
+      if (!sym || sym.kind !== 'constant') {
+        return {
+          kind: 'label',
+          symbolRef: labelName,
+        };
+      }
     }
 
-    // Fallback: Constant expression evaluation
+    // 8. Fallback: Constant expression evaluation
     try {
       const evalRes = ExpressionEvaluator.evaluate(
         tokens.map((t) => t.value),
@@ -673,62 +643,269 @@ export class Parser {
     }
   }
 
-  private parseBracketedMemory(tokens: Token[], ptrSize: 1 | 2 | 4 | undefined, line: number): Operand {
+  private resolvePtrSize(tok: Token, line: number): 1 | 2 | 4 {
+    const sizeWord = tok.value.toLowerCase();
+    if (sizeWord === 'byte' || sizeWord === 'sbyte') return 1;
+    if (sizeWord === 'word' || sizeWord === 'sword') return 2;
+    if (sizeWord === 'dword' || sizeWord === 'sdword' || sizeWord === 'real4') return 4;
+    throw new Error(
+      `Line ${line}: Invalid size specifier '${tok.value}' before PTR (expected BYTE, WORD, or DWORD)`
+    );
+  }
+
+  private normalizeMemoryBrackets(tokens: Token[], line: number): Token[] {
+    let bracketDepth = 0;
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i];
+      if (t.type === TokenType.LBRACKET) {
+        if (tokens[i + 1]?.type === TokenType.RBRACKET) {
+          throw new Error(`Line ${line}: Empty memory brackets '[]'`);
+        }
+        bracketDepth++;
+      } else if (t.type === TokenType.RBRACKET) {
+        bracketDepth--;
+        if (bracketDepth < 0) {
+          throw new Error(`Line ${line}: Unmatched ']' in memory operand`);
+        }
+      }
+    }
+    if (bracketDepth !== 0) {
+      throw new Error(`Line ${line}: Unclosed '[' in memory operand`);
+    }
+
+    const normalized: Token[] = [];
+    const lbracketPrevTypes = new Set([
+      TokenType.IDENTIFIER,
+      TokenType.NUMBER,
+      TokenType.REGISTER,
+      TokenType.RBRACKET,
+      TokenType.RPAREN,
+    ]);
+    const rbracketNextTypes = new Set([
+      TokenType.IDENTIFIER,
+      TokenType.NUMBER,
+      TokenType.REGISTER,
+      TokenType.OPERATOR,
+      TokenType.LPAREN,
+    ]);
+
+    for (let i = 0; i < tokens.length; i++) {
+      const tok = tokens[i];
+      if (tok.type === TokenType.LBRACKET) {
+        const prev = i > 0 ? tokens[i - 1] : undefined;
+        if (prev && lbracketPrevTypes.has(prev.type)) {
+          normalized.push({ type: TokenType.PLUS, value: '+', line: tok.line, column: tok.column });
+        }
+        continue;
+      }
+      if (tok.type === TokenType.RBRACKET) {
+        const next = i + 1 < tokens.length ? tokens[i + 1] : undefined;
+        if (next && rbracketNextTypes.has(next.type)) {
+          normalized.push({ type: TokenType.PLUS, value: '+', line: tok.line, column: tok.column });
+        }
+        continue;
+      }
+      normalized.push(tok);
+    }
+
+    return normalized;
+  }
+
+  private splitAdditiveTerms(tokens: Token[], line: number): Array<{ sign: 1 | -1; tokens: Token[] }> {
+    const terms: Array<{ sign: 1 | -1; tokens: Token[] }> = [];
+    let currentSign: 1 | -1 = 1;
+    let currentTokens: Token[] = [];
+    let parenDepth = 0;
+
+    for (let i = 0; i < tokens.length; i++) {
+      const tok = tokens[i];
+      if (tok.type === TokenType.LPAREN) {
+        parenDepth++;
+        currentTokens.push(tok);
+        continue;
+      }
+      if (tok.type === TokenType.RPAREN) {
+        parenDepth--;
+        if (parenDepth < 0) {
+          throw new Error(`Line ${line}: Unmatched ')' in memory operand`);
+        }
+        currentTokens.push(tok);
+        continue;
+      }
+
+      if (parenDepth === 0 && (tok.type === TokenType.PLUS || tok.type === TokenType.MINUS)) {
+        const lastTok = currentTokens.length > 0 ? currentTokens[currentTokens.length - 1] : undefined;
+        const isUnary =
+          !lastTok ||
+          lastTok.type === TokenType.STAR ||
+          lastTok.type === TokenType.SLASH ||
+          lastTok.type === TokenType.OPERATOR ||
+          lastTok.type === TokenType.PLUS ||
+          lastTok.type === TokenType.MINUS;
+
+        if (!isUnary) {
+          terms.push({ sign: currentSign, tokens: currentTokens });
+          currentTokens = [];
+          currentSign = tok.type === TokenType.PLUS ? 1 : -1;
+          continue;
+        }
+      }
+
+      currentTokens.push(tok);
+    }
+
+    if (parenDepth !== 0) {
+      throw new Error(`Line ${line}: Unclosed '(' in memory operand`);
+    }
+    if (currentTokens.length === 0) {
+      throw new Error(`Line ${line}: Incomplete expression in memory operand`);
+    }
+    terms.push({ sign: currentSign, tokens: currentTokens });
+    return terms;
+  }
+
+  private evaluateMemoryConstantTokens(tokens: Token[], line: number): {
+    value: number;
+    symbolRef?: string;
+    varSize?: 1 | 2 | 4;
+  } {
+    let symbolRef: string | undefined;
+    let varSize: 1 | 2 | 4 | undefined;
+
+    for (let i = 0; i < tokens.length; i++) {
+      const tok = tokens[i];
+      if (tok.type === TokenType.IDENTIFIER) {
+        const sym = this.symbols.get(tok.value.toLowerCase());
+        if (!sym) {
+          throw new Error(`Line ${line}: Undefined symbol '${tok.value}' in memory operand`);
+        }
+        if (sym.kind === 'variable') {
+          const prevLower = i > 0 ? tokens[i - 1].value.toLowerCase() : '';
+          if (!['type', 'lengthof', 'sizeof', 'offset'].includes(prevLower)) {
+            symbolRef = sym.name;
+            varSize = sym.dataType as 1 | 2 | 4 | undefined;
+          }
+        }
+      }
+    }
+
+    try {
+      const evalRes = ExpressionEvaluator.evaluate(
+        tokens.map((t) => t.value),
+        this.symbols
+      );
+      return { value: evalRes.value, symbolRef, varSize };
+    } catch (err: any) {
+      throw new Error(`Line ${line}: Invalid expression in memory operand: ${err.message}`);
+    }
+  }
+
+  private parseMemoryOperand(tokens: Token[], ptrSize: 1 | 2 | 4 | undefined, line: number): Operand {
+    const normalized = this.normalizeMemoryBrackets(tokens, line);
+    const terms = this.splitAdditiveTerms(normalized, line);
+
+    const unscaledRegs: string[] = [];
+    const scaledRegs: Array<{ reg: string; scale: 2 | 4 | 8 }> = [];
+    let displacement = 0;
+    let symbolRef: string | undefined;
+    let varSize: 1 | 2 | 4 | undefined;
+
+    for (const term of terms) {
+      const regTokens = term.tokens.filter((t) => t.type === TokenType.REGISTER);
+
+      if (regTokens.length > 0) {
+        if (regTokens.length > 1) {
+          throw new Error(`Line ${line}: Cannot multiply multiple registers in memory operand`);
+        }
+        const regName = regTokens[0].value.toLowerCase();
+        if (term.sign === -1 || term.tokens[0]?.type === TokenType.MINUS) {
+          throw new Error(`Line ${line}: Cannot subtract register '${regName}' in memory address`);
+        }
+
+        const trimmedTokens =
+          term.tokens[0]?.type === TokenType.PLUS ? term.tokens.slice(1) : term.tokens;
+
+        if (trimmedTokens.length === 1 && trimmedTokens[0].type === TokenType.REGISTER) {
+          unscaledRegs.push(regName);
+          continue;
+        }
+
+        let starIdx = -1;
+        let depth = 0;
+        for (let k = 0; k < trimmedTokens.length; k++) {
+          if (trimmedTokens[k].type === TokenType.LPAREN) depth++;
+          else if (trimmedTokens[k].type === TokenType.RPAREN) depth--;
+          else if (depth === 0 && trimmedTokens[k].type === TokenType.STAR) {
+            if (starIdx !== -1) {
+              throw new Error(`Line ${line}: Invalid register scaling expression in memory operand`);
+            }
+            starIdx = k;
+          }
+        }
+
+        if (starIdx === -1) {
+          throw new Error(`Line ${line}: Invalid register expression in memory operand`);
+        }
+
+        const left = trimmedTokens.slice(0, starIdx);
+        const right = trimmedTokens.slice(starIdx + 1);
+        let scaleTokens: Token[];
+
+        if (left.length === 1 && left[0].type === TokenType.REGISTER && right.length > 0) {
+          scaleTokens = right;
+        } else if (right.length === 1 && right[0].type === TokenType.REGISTER && left.length > 0) {
+          scaleTokens = left;
+        } else {
+          throw new Error(`Line ${line}: Invalid register scaling syntax for '${regName}' in memory operand`);
+        }
+
+        const { value: scaleVal } = this.evaluateMemoryConstantTokens(scaleTokens, line);
+        if (scaleVal !== 1 && scaleVal !== 2 && scaleVal !== 4 && scaleVal !== 8) {
+          throw new Error(
+            `Line ${line}: Invalid index scale factor '${scaleVal}' for register '${regName}' (must be 1, 2, 4, or 8)`
+          );
+        }
+
+        if (scaleVal === 1) {
+          unscaledRegs.push(regName);
+        } else {
+          scaledRegs.push({ reg: regName, scale: scaleVal });
+        }
+        continue;
+      }
+
+      // Displacement term
+      const evaluated = this.evaluateMemoryConstantTokens(term.tokens, line);
+      displacement += term.sign * evaluated.value;
+      if (evaluated.symbolRef !== undefined) {
+        symbolRef = evaluated.symbolRef;
+      }
+      if (evaluated.varSize !== undefined) {
+        varSize = evaluated.varSize;
+      }
+    }
+
+    if (scaledRegs.length > 1) {
+      throw new Error(`Line ${line}: Only one register can have a scale multiplier in a memory operand`);
+    }
+    if (unscaledRegs.length + scaledRegs.length > 2) {
+      throw new Error(
+        `Line ${line}: Too many registers in memory operand (maximum 1 base + 1 index register)`
+      );
+    }
+
     let baseReg: string | undefined;
     let indexReg: string | undefined;
     let scale: 1 | 2 | 4 | 8 = 1;
-    let displacement = 0;
-    let symbolRef: string | undefined;
 
-    let currentSign = 1;
-    let i = 0;
-
-    while (i < tokens.length) {
-      const t = tokens[i];
-
-      if (t.type === TokenType.REGISTER) {
-        if (!baseReg) {
-          baseReg = t.value.toLowerCase();
-        } else if (!indexReg) {
-          indexReg = t.value.toLowerCase();
-        }
-        i++;
-      } else if (t.type === TokenType.STAR) {
-        i++;
-        if (tokens[i]?.type === TokenType.NUMBER) {
-          scale = (tokens[i].numericValue as any) ?? 1;
-          i++;
-        }
-      } else if (t.type === TokenType.PLUS) {
-        currentSign = 1;
-        i++;
-      } else if (t.type === TokenType.MINUS) {
-        currentSign = -1;
-        i++;
-      } else if (t.type === TokenType.NUMBER) {
-        displacement += currentSign * (t.numericValue ?? 0);
-        currentSign = 1;
-        i++;
-      } else if (t.type === TokenType.IDENTIFIER) {
-        const sym = this.symbols.get(t.value.toLowerCase());
-        if (sym) {
-          if (sym.kind === 'variable') {
-            displacement += currentSign * sym.address;
-            symbolRef = sym.name;
-            if (!ptrSize && sym.dataType) {
-              ptrSize = sym.dataType as 1 | 2 | 4;
-            }
-          } else if (sym.kind === 'constant') {
-            displacement += currentSign * (sym.value ?? 0);
-          }
-        } else {
-          throw new Error(`Line ${line}: Undefined symbol '${t.value}' inside memory brackets`);
-        }
-        currentSign = 1;
-        i++;
-      } else {
-        i++;
-      }
+    if (scaledRegs.length === 1) {
+      indexReg = scaledRegs[0].reg;
+      scale = scaledRegs[0].scale;
+      baseReg = unscaledRegs[0];
+    } else {
+      baseReg = unscaledRegs[0];
+      indexReg = unscaledRegs[1];
+      scale = 1;
     }
 
     return {
@@ -738,7 +915,7 @@ export class Parser {
       scale,
       displacement: displacement >>> 0,
       symbolRef,
-      size: ptrSize ?? 4,
+      size: ptrSize ?? varSize,
       ptrSize,
     };
   }
@@ -820,14 +997,74 @@ export class Parser {
       }
     }
 
-    // Memory to memory move check
-    if (m === 'mov' || m === 'add' || m === 'sub' || m === 'cmp') {
+    // Memory to memory check
+    if (['mov', 'add', 'sub', 'cmp', 'and', 'or', 'xor', 'test'].includes(m)) {
       if (operands.length === 2 && operands[0].kind === 'memory' && operands[1].kind === 'memory') {
         this.errors.push(
           ErrorEngine.create(
             line,
             `x86 architecture cannot perform memory-to-memory '${m.toUpperCase()}'.`,
             `Load the source into a register first: e.g. 'mov eax, source' then '${m} dest, eax'.`
+          )
+        );
+      }
+    }
+
+    // Operand size inference for untyped memory operands
+    if (['mov', 'xchg', 'add', 'sub', 'cmp', 'and', 'or', 'xor', 'test'].includes(m)) {
+      if (operands[0]?.kind === 'memory' && operands[0].size === undefined && operands[1]?.kind === 'register' && operands[1].size !== undefined) {
+        operands[0].size = operands[1].size;
+      }
+      if (operands[1]?.kind === 'memory' && operands[1].size === undefined && operands[0]?.kind === 'register' && operands[0].size !== undefined) {
+        operands[1].size = operands[0].size;
+      }
+    } else if (m === 'imul' && (operands.length === 2 || operands.length === 3)) {
+      if (operands[1]?.kind === 'memory' && operands[1].size === undefined && operands[0]?.kind === 'register' && operands[0].size !== undefined) {
+        operands[1].size = operands[0].size;
+      }
+    } else if (m === 'movzx' || m === 'movsx') {
+      if (operands[1]?.kind === 'immediate') {
+        this.errors.push(ErrorEngine.create(line, `${m.toUpperCase()} source operand cannot be an immediate constant.`));
+      } else if (operands[1]?.kind === 'memory' && operands[1].size === undefined) {
+        if (operands[0]?.size === 2) {
+          operands[1].size = 1;
+        } else {
+          this.errors.push(
+            ErrorEngine.create(
+              line,
+              `Ambiguous memory operand size in '${m.toUpperCase()}': specify 'BYTE PTR' or 'WORD PTR'.`
+            )
+          );
+          return;
+        }
+      }
+    } else if (m === 'lea') {
+      if (operands[1]?.kind === 'memory' && operands[1].size === undefined) {
+        operands[1].size = 4;
+      }
+    } else if (m === 'push' || m === 'pop') {
+      if (operands[0]?.kind === 'memory' && operands[0].size === undefined) {
+        operands[0].size = 4;
+      }
+    } else if (['mul', 'div', 'idiv'].includes(m)) {
+      if (operands[0]?.kind === 'immediate') {
+        this.errors.push(
+          ErrorEngine.create(
+            line,
+            `'${m.toUpperCase()}' cannot take an immediate constant directly; use a register or memory operand.`
+          )
+        );
+      }
+    }
+
+    // Reject any remaining unresolved memory operand sizes
+    for (const op of operands) {
+      if (op.kind === 'memory' && op.size === undefined) {
+        this.errors.push(
+          ErrorEngine.create(
+            line,
+            `Instruction operand must have size in '${m.toUpperCase()}' (memory operand has no inferred size).`,
+            `Specify 'BYTE PTR', 'WORD PTR', or 'DWORD PTR' before the memory operand.`
           )
         );
       }
@@ -854,7 +1091,7 @@ export class Parser {
       operands[0].size &&
       operands[1].size &&
       operands[1].kind !== 'immediate' &&
-      !['movzx', 'movsx', 'shl', 'shr', 'sal', 'sar', 'rol', 'ror', 'rcl', 'rcr'].includes(m)
+      !['movzx', 'movsx', 'lea', 'shl', 'shr', 'sal', 'sar', 'rol', 'ror', 'rcl', 'rcr'].includes(m)
     ) {
       if (operands[0].size !== operands[1].size) {
         this.errors.push(
@@ -928,11 +1165,6 @@ export class Parser {
       return true;
     }
     return false;
-  }
-
-  private consume(type: TokenType, errMsg: string): Token {
-    if (this.check(type)) return this.advance();
-    throw new Error(errMsg);
   }
 
   private isAtLineEnd(): boolean {

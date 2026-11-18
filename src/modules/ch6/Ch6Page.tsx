@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { OpenInPlayground } from '../shared/OpenInPlayground';
-import { ArrowLeft, GitBranch, Check, X, Binary, Terminal, ShieldAlert, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, GitBranch, Check, X, Binary, Terminal, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { FlagEngine } from '../../engine/flags';
 import { ChapterQuiz, QuizQuestion } from '../shared/ChapterQuiz';
@@ -95,7 +95,7 @@ export const Ch6Page: React.FC = () => {
   const fsmResult = traceFSM(fsmInput);
 
   // CMP EAX, EBX computes flags for opA - opB
-  const flags = FlagEngine.computeSubFlags(opA, opB, 4);
+  const { flags } = FlagEngine.computeSubFlags(opA, opB, 4, undefined, true);
   const zf = flags.ZF;
   const sf = flags.SF;
   const cf = flags.CF;

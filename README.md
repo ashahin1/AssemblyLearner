@@ -63,7 +63,7 @@ npm install
 # Run Vite dev server with Hot Module Replacement
 npm run dev
 
-# Run Vitest test suite (all 53 automated unit & integration tests across 9 test suites)
+# Run Vitest test suite (all 54 automated unit & integration tests across 9 test suites)
 npm test
 
 # Build single-file bundle and distribution package
@@ -120,7 +120,7 @@ The repository is pre-configured for continuous hosting and automated deployment
 
 ### Method A: Automated GitHub Actions (Active)
 The repository includes [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml):
-1. Whenever commits are pushed to `main`, GitHub Actions automatically runs all 53 unit and integration tests across 9 test suites, compiles the production bundle, and deploys directly to:
+1. Whenever commits are pushed to `main`, GitHub Actions automatically runs all 54 unit and integration tests across 9 test suites, compiles the production bundle, and deploys directly to:
    **[https://ashahin1.github.io/AssemblyLearner/](https://ashahin1.github.io/AssemblyLearner/)**
 2. In the repository settings (**Settings** $\to$ **Pages**), **Build and deployment $\to$ Source** is set to **GitHub Actions**.
 
@@ -153,6 +153,18 @@ For campus lab PCs:
 | `Ctrl + +` / `Ctrl + -` | Zoom In / Zoom Out |
 | `Ctrl + Shift + R` | Reset CPU & Memory |
 | `Ctrl + Shift + S` | Copy Share-by-URL link to clipboard |
+
+---
+
+## 🗺 Simulator Memory Map (Default Virtual Addresses)
+
+Modeled after classic 32-bit Win32 PE layouts for deterministic inspection (always use `OFFSET` or `LEA` in code rather than hardcoding addresses):
+
+| Segment | Starting Address | Range / Size |
+| :--- | :--- | :--- |
+| **`.code` (Code)** | `00401000h` | Increments sequentially per instruction |
+| **`.data` / `.data?` (Data)** | `00404000h` | `00404000h` – `00413FFFh` (`64 KB`) |
+| **Stack (`ESP` / `EBP`)** | `0012FFF0h` | `0012FFF0h` down to `0012EFF0h` (`4,096 bytes`) |
 
 ---
 

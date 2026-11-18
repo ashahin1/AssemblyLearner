@@ -358,4 +358,48 @@ END main
     expect(cpu.getRegister('ebx')).toBe(0xffffff80);
     expect((cpu.getRegister('ebx') >>> 0).toString(16).toUpperCase().padStart(8, '0') + 'h').toBe('FFFFFF80h');
   });
+
+  it('Increments memoryVersion and populates .data immediately on assembleCode, stepForward, and stepBackward', async () => {
+    const store = await import('../../src/store/cpuStore');
+    const useCPUStore = store.useCPUStore;
+
+    useCPUStore.getState().reset();
+    const initialVer = useCPUStore.getState().memoryVersion;
+
+    const code = `
+.data
+    val1 DWORD 12345678h
+.code
+main PROC
+    mov eax, val1
+    mov val1, 0AABBCCDDh
+    exit
+main ENDP
+END main
+`;
+    const ok = useCPUStore.getState().assembleCode(code);
+    expect(ok).toBe(true);
+    const afterAssembleVer = useCPUStore.getState().memoryVersion;
+    expect(afterAssembleVer).toBe(initialVer + 1);
+
+    const dataAllocated = useCPUStore
+      .getState()
+      .memory.getAllAllocated()
+      .filter((b) => b.address >= MEMORY_LAYOUT.DATA_BASE && b.address < MEMORY_LAYOUT.DATA_BASE + MEMORY_LAYOUT.DATA_SIZE);
+    expect(dataAllocated.length).toBe(4);
+    expect(useCPUStore.getState().memory.readDword(MEMORY_LAYOUT.DATA_BASE)).toBe(0x12345678);
+
+    await useCPUStore.getState().stepForward(); // mov eax, val1
+    const afterStep1Ver = useCPUStore.getState().memoryVersion;
+    expect(afterStep1Ver).toBe(afterAssembleVer + 1);
+
+    await useCPUStore.getState().stepForward(); // mov val1, 0AABBCCDDh
+    const afterStep2Ver = useCPUStore.getState().memoryVersion;
+    expect(afterStep2Ver).toBe(afterStep1Ver + 1);
+    expect(useCPUStore.getState().memory.readDword(MEMORY_LAYOUT.DATA_BASE)).toBe(0xaabbccdd);
+
+    useCPUStore.getState().stepBackward();
+    expect(useCPUStore.getState().memoryVersion).toBe(afterStep2Ver + 1);
+    expect(useCPUStore.getState().memory.readDword(MEMORY_LAYOUT.DATA_BASE)).toBe(0x12345678);
+  });
 });

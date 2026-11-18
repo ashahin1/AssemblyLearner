@@ -10,6 +10,7 @@ export type StackDisplayFormat = 'hex' | 'unsigned' | 'signed' | 'binary';
 export const StackPanel: React.FC = () => {
   const cpuState = useCPUStore((s) => s.cpuState);
   const memory = useCPUStore((s) => s.memory);
+  useCPUStore((s) => s.memoryVersion);
 
   const [format, setFormat] = useState<StackDisplayFormat>('hex');
 

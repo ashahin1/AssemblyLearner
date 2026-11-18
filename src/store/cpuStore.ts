@@ -36,6 +36,7 @@ interface CPUStoreState {
   isCodeDirty: boolean;
   breakpoints: Set<number>;
   wasRunningBeforeInput: boolean;
+  memoryVersion: number;
 
   // Actions
   assembleCode: (code: string) => boolean;
@@ -84,6 +85,7 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
     isCodeDirty: false,
     breakpoints: new Set(),
     wasRunningBeforeInput: false,
+    memoryVersion: 0,
 
     assembleCode: (code: string) => {
       const { cpu, memory, history } = get();
@@ -93,6 +95,8 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
 
       const tokens = new Lexer(code).tokenize();
       const parsed = new Parser(tokens).assemble();
+
+      memory.loadInitialData(parsed.initialData);
 
       if (!parsed.success) {
         set({
@@ -104,11 +108,10 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
           runner: null,
           generator: null,
           wasRunningBeforeInput: false,
+          memoryVersion: get().memoryVersion + 1,
         });
         return false;
       }
-
-      memory.loadInitialData(parsed.initialData);
 
       const entryIndex = (parsed as any).entryInstructionIndex ?? 0;
       if (entryIndex > 0) {
@@ -147,6 +150,7 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
         currentStepIndex: 0,
         totalStepsRecorded: 0,
         currentExecutionLine: parsed.instructions[entryIndex]?.sourceLine ?? null,
+        memoryVersion: get().memoryVersion + 1,
       });
 
       return true;
@@ -175,6 +179,7 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
           isRunning: false,
           currentExecutionLine: null,
           cpuState: cpu.getState(),
+          memoryVersion: get().memoryVersion + 1,
         });
         return;
       }
@@ -222,6 +227,7 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
           flagDiagnostics: next.value.flagDiagnostics,
           currentStepIndex: history.length,
           totalStepsRecorded: history.length,
+          memoryVersion: get().memoryVersion + 1,
         });
 
         // Pause if hit breakpoint
@@ -254,6 +260,7 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
         isHalted: false,
         isWaitingForInput: false,
         wasRunningBeforeInput: false,
+        memoryVersion: get().memoryVersion + 1,
       });
     },
 
@@ -291,6 +298,7 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
         currentStepIndex: 0,
         totalStepsRecorded: 0,
         isCodeDirty: false,
+        memoryVersion: get().memoryVersion + 1,
       });
     },
 
@@ -314,6 +322,7 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
           wasRunningBeforeInput: false,
           currentExecutionLine: null,
           cpuState: cpu.getState(),
+          memoryVersion: get().memoryVersion + 1,
         });
         return;
       }
@@ -360,6 +369,7 @@ export const useCPUStore = create<CPUStoreState>((set, get) => {
           flagDiagnostics: next.value.flagDiagnostics ?? [],
           currentStepIndex: history.length,
           totalStepsRecorded: history.length,
+          memoryVersion: get().memoryVersion + 1,
         });
 
         if (breakpoints.has(next.value.line)) {

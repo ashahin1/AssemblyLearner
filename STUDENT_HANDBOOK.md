@@ -172,6 +172,16 @@ Status flags in the `EFLAGS` register record the outcome of arithmetic and logic
 
 Variables declared in the `.data` segment are placed contiguously in virtual RAM:
 
+### Simulator Memory Map (Default Virtual Addresses)
+| Segment | Starting Address | Range / Size | Notes |
+| :--- | :--- | :--- | :--- |
+| **`.code` (Code)** | **`00401000h`** | Increments per instruction | Tracks instruction addresses (`EIP` executes instruction indices) |
+| **`.data` / `.data?` (Data)** | **`00404000h`** | `00404000h` – `00413FFFh` (`64 KB`) | Variables are laid out sequentially from `00404000h` |
+| **Stack** | **`0012FFF0h`** | `0012FFF0h` down to `0012EFF0h` (`4,096 B`) | Initial `ESP` and `EBP` begin at `0012FFF0h` |
+
+> [!NOTE]
+> These fixed base addresses are **deterministic simulator defaults** modeled after classic Win32 PE layouts so you can predict `OFFSET` values and trace pointers easily while learning. On a real Windows OS (with Visual Studio and ASLR), the OS loader assigns the actual runtime addresses—so always reference variables using `OFFSET var`, labels, or `LEA` rather than hardcoding literal addresses like `00404000h`.
+
 ### Data Directives
 ```assembly
 .data
@@ -198,7 +208,7 @@ x86 processors store multi-byte integers in memory with the **least significant 
 
 The runtime stack is an inverted memory structure that grows **downward** (from high memory to low memory):
 
-* **Initial State:** `ESP = 00010000h`.
+* **Initial State:** `ESP = 0012FFF0h`, `EBP = 0012FFF0h` (4,096-byte stack extending down to `0012EFF0h`).
 * **`PUSH operand`:**
   1. Decrements `ESP` by 4 (`ESP = ESP - 4`).
   2. Writes the 32-bit operand to memory at address `[ESP]`.

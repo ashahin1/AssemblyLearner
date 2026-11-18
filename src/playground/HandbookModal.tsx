@@ -301,21 +301,24 @@ END main`}
                   <span>5. Memory Dump &amp; Runtime Stack Panels</span>
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/60">
-                    <h5 className="font-semibold text-slate-100 mb-1">Memory Dump (Little-Endian)</h5>
-                    <p className="text-slate-400 mb-1.5">
-                      Displays bytes allocated in the <code className="text-sky-300">.data</code> segment. Notice how x86 stores multi-byte values in Little-Endian order (least significant byte first)!
+                  <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/60 space-y-1.5">
+                    <h5 className="font-semibold text-slate-100">Memory Dump (Little-Endian)</h5>
+                    <p className="text-slate-400">
+                      Displays bytes allocated in the <code className="text-sky-300">.data</code> segment starting at <code className="text-sky-300">00404000h</code> (up to <code className="text-sky-300">00413FFFh</code>; <code className="text-sky-300">.code</code> starts at <code className="text-sky-300">00401000h</code>). Notice how x86 stores multi-byte values in Little-Endian order (least significant byte first)!
                     </p>
                     <div className="font-mono text-[11px] text-amber-300 bg-slate-950 p-1 rounded">
                       DWORD 12345678h ➔ stored as 78 56 34 12
                     </div>
                   </div>
-                  <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/60">
-                    <h5 className="font-semibold text-slate-100 mb-1">Runtime Stack (ESP / EBP)</h5>
-                    <p className="text-slate-400 mb-1.5">
-                      Visually renders the 32-bit stack. As instructions execute <code className="text-sky-300">PUSH</code>, <code className="text-sky-300">POP</code>, <code className="text-sky-300">CALL</code>, and <code className="text-sky-300">RET</code>, you will see ESP decrement and increment in 4-byte steps.
+                  <div className="bg-slate-800/60 p-3 rounded-lg border border-slate-700/60 space-y-1.5">
+                    <h5 className="font-semibold text-slate-100">Runtime Stack (ESP / EBP)</h5>
+                    <p className="text-slate-400">
+                      Visually renders the 32-bit stack starting at <code className="text-sky-300">0012FFF0h</code> (down to <code className="text-sky-300">0012EFF0h</code>, 4 KB). As instructions execute <code className="text-sky-300">PUSH</code>, <code className="text-sky-300">POP</code>, <code className="text-sky-300">CALL</code>, and <code className="text-sky-300">RET</code>, ESP decrements and increments in 4-byte steps.
                     </p>
                   </div>
+                </div>
+                <div className="bg-slate-950 p-2.5 rounded border border-slate-800 text-[11px] text-slate-400">
+                  💡 <strong className="text-slate-200">Note on Virtual Addresses:</strong> Base addresses (<code className="text-sky-300">00401000h</code> / <code className="text-sky-300">00404000h</code> / <code className="text-sky-300">0012FFF0h</code>) are deterministic simulator defaults modeled after classic Win32 PE layouts. Always use <code className="text-sky-300">OFFSET</code> or <code className="text-sky-300">LEA</code> instead of hardcoding addresses, since real Windows loaders relocate segments dynamically.
                 </div>
               </div>
 

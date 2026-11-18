@@ -9,6 +9,9 @@ export type MemoryUnitSize = 1 | 2 | 4;
 
 export const MemoryPanel: React.FC = () => {
   const memory = useCPUStore((s) => s.memory);
+  // Subscribe to memoryVersion and cpuState so initial assembly, steps, and resets re-render this panel
+  useCPUStore((s) => s.memoryVersion);
+  useCPUStore((s) => s.cpuState);
 
   const [format, setFormat] = useState<MemoryFormat>('hex');
   const [unitSize, setUnitSize] = useState<MemoryUnitSize>(1);

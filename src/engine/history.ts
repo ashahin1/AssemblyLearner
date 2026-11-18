@@ -8,6 +8,7 @@ import { MAX_HISTORY_STEPS } from './constants';
 export class HistoryManager {
   private history: ExecutionSnapshot[] = [];
   private currentMemoryChanges: Array<{ address: number; oldValue: number }> = [];
+  private isRestoring: boolean = false;
 
   constructor() {
     this.reset();
@@ -16,6 +17,7 @@ export class HistoryManager {
   reset(): void {
     this.history = [];
     this.currentMemoryChanges = [];
+    this.isRestoring = false;
   }
 
   get length(): number {
@@ -26,7 +28,12 @@ export class HistoryManager {
    * Called by MemoryManager write callback to record memory modifications
    */
   recordMemoryChange(address: number, oldValue: number): void {
-    this.currentMemoryChanges.push({ address, oldValue });
+    if (this.isRestoring) return;
+    if (this.history.length > 0) {
+      this.history[this.history.length - 1].modifiedMemory.push({ address, oldValue });
+    } else {
+      this.currentMemoryChanges.push({ address, oldValue });
+    }
   }
 
   /**
@@ -81,11 +88,17 @@ export class HistoryManager {
 
     const snapshot = this.history.pop()!;
 
-    // Revert memory writes
-    for (let i = snapshot.modifiedMemory.length - 1; i >= 0; i--) {
-      const change = snapshot.modifiedMemory[i];
-      memory.writeByte(change.address, change.oldValue);
+    // Revert memory writes without recording undo writes back into history
+    this.isRestoring = true;
+    try {
+      for (let i = snapshot.modifiedMemory.length - 1; i >= 0; i--) {
+        const change = snapshot.modifiedMemory[i];
+        memory.writeByte(change.address, change.oldValue);
+      }
+    } finally {
+      this.isRestoring = false;
     }
+    this.currentMemoryChanges = [];
 
     // Restore CPU state
     cpu.setState({
